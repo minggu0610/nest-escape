@@ -264,6 +264,7 @@ export default function App() {
   const [selectedPolicy, setSelectedPolicy] = useState(null);
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [filter, setFilter] = useState('전체');
+  const [specialFilter, setSpecialFilter] = useState(null); // '자격충족', '마감임박'
 
   // 추천 및 필터링 로직
   const getFilteredPolicies = () => {
@@ -274,7 +275,15 @@ export default function App() {
       list = list.filter(p => p.category === filter);
     }
 
-    // 2. 가상 알고리즘 적용 (소득 기반 매칭 점수 계산)
+    // 2. 특별 필터링 (충족 정책, 마감 임박)
+    if (specialFilter === '자격충족') {
+      list = list.filter(p => p.tag === '자격충족');
+    } else if (specialFilter === '마감임박') {
+      // D-Day가 7일 이내이거나 특정 키워드가 있는 경우를 마감임박으로 간주
+      list = list.filter(p => p.dDay.includes('D-') && parseInt(p.dDay.replace('D-', '')) <= 7);
+    }
+
+    // 3. 가상 알고리즘 적용 (소득 기반 매칭 점수 계산)
     return list.map(p => {
       let matchScore = 0;
       const userIncome = parseInt(user.income) || 0;
@@ -529,89 +538,162 @@ export default function App() {
                     <p className="text-white/80 text-sm font-medium mb-1">최대 예상 혜택</p>
                     <h2 className="text-3xl font-black">2,400만원</h2>
                   </div>
-                  <div className="bg-white p-6 rounded-[2rem] border border-gray-100 flex items-center gap-4">
-                    <div className="w-12 h-12 bg-green-50 rounded-2xl flex items-center justify-center text-green-500">
+                  <motion.div 
+                    whileHover={{ y: -5 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => {
+                      setSpecialFilter('자격충족');
+                      setFilter('전체');
+                    }}
+                    className={cn(
+                      "p-6 rounded-[2rem] border transition-all cursor-pointer flex items-center gap-4",
+                      specialFilter === '자격충족' ? "bg-green-500 border-green-500 text-white shadow-lg" : "bg-white border-gray-100"
+                    )}
+                  >
+                    <div className={cn(
+                      "w-12 h-12 rounded-2xl flex items-center justify-center",
+                      specialFilter === '자격충족' ? "bg-white/20 text-white" : "bg-green-50 text-green-500"
+                    )}>
                       <CheckCircle2 size={24} />
                     </div>
                     <div>
-                      <p className="text-gray-400 text-xs font-bold uppercase">충족 정책</p>
-                      <h3 className="text-xl font-black text-gray-900">12건</h3>
+                      <p className={cn("text-xs font-bold uppercase", specialFilter === '자격충족' ? "text-white/80" : "text-gray-400")}>충족 정책</p>
+                      <h3 className="text-xl font-black">12건</h3>
                     </div>
-                  </div>
-                  <div className="bg-white p-6 rounded-[2rem] border border-gray-100 flex items-center gap-4">
-                    <div className="w-12 h-12 bg-orange-50 rounded-2xl flex items-center justify-center text-orange-500">
+                  </motion.div>
+                  <motion.div 
+                    whileHover={{ y: -5 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => {
+                      setSpecialFilter('마감임박');
+                      setFilter('전체');
+                    }}
+                    className={cn(
+                      "p-6 rounded-[2rem] border transition-all cursor-pointer flex items-center gap-4",
+                      specialFilter === '마감임박' ? "bg-orange-500 border-orange-500 text-white shadow-lg" : "bg-white border-gray-100"
+                    )}
+                  >
+                    <div className={cn(
+                      "w-12 h-12 rounded-2xl flex items-center justify-center",
+                      specialFilter === '마감임박' ? "bg-white/20 text-white" : "bg-orange-50 text-orange-500"
+                    )}>
                       <AlertCircle size={24} />
                     </div>
                     <div>
-                      <p className="text-gray-400 text-xs font-bold uppercase">마감 임박</p>
-                      <h3 className="text-xl font-black text-gray-900">2건</h3>
+                      <p className={cn("text-xs font-bold uppercase", specialFilter === '마감임박' ? "text-white/80" : "text-gray-400")}>마감 임박</p>
+                      <h3 className="text-xl font-black">2건</h3>
+                    </div>
+                  </motion.div>
+                </div>
+              </div>
+
+              <div className="flex flex-col lg:flex-row gap-10">
+                {/* Main Content Area */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+                    <div className="flex items-center gap-3">
+                      <h2 className="text-xl font-bold text-gray-900">
+                        {specialFilter ? (
+                          <span className="flex items-center gap-2">
+                            {specialFilter === '자격충족' ? '✅ 충족 정책' : '⏰ 마감 임박'} 리스트
+                            <button 
+                              onClick={() => setSpecialFilter(null)}
+                              className="p-1.5 bg-gray-100 hover:bg-gray-200 rounded-full text-gray-500 transition-colors"
+                            >
+                              <X size={14} />
+                            </button>
+                          </span>
+                        ) : (
+                          `${user.name}님께 딱 맞는 추천 리스트`
+                        )}
+                      </h2>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {['전체', '대출지원', '월세지원', '공공임대', '자산형성'].map(cat => (
+                        <FilterButton 
+                          key={cat} 
+                          label={cat} 
+                          active={filter === cat} 
+                          onClick={() => setFilter(cat)} 
+                        />
+                      ))}
                     </div>
                   </div>
-                </div>
-              </div>
 
-              {/* Trending Section */}
-              <div className="mb-12">
-                <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
-                  <TrendingUp size={20} className="text-orange-500" />
-                  지금 급상승 중인 정책
-                </h2>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  {trendingPolicies.map((policy, idx) => (
-                    <motion.div 
-                      key={policy.id}
-                      whileHover={{ scale: 1.02 }}
-                      onClick={() => setSelectedPolicy(policy)}
-                      className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm cursor-pointer flex items-center gap-4"
-                    >
-                      <div className="w-10 h-10 bg-orange-50 text-orange-500 rounded-xl flex items-center justify-center font-bold">
-                        {idx + 1}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-bold text-gray-900 truncate">{policy.title}</h3>
-                        <p className="text-xs text-gray-500">{(policy.views / 1000).toFixed(1)}k명이 확인 중</p>
-                      </div>
-                    </motion.div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Policy List with Filters */}
-              <div>
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-                  <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-                    {user.name}님께 딱 맞는 추천 리스트
-                  </h2>
-                  <div className="flex flex-wrap gap-2">
-                    {['전체', '대출지원', '월세지원', '공공임대', '자산형성'].map(cat => (
-                      <FilterButton 
-                        key={cat} 
-                        label={cat} 
-                        active={filter === cat} 
-                        onClick={() => setFilter(cat)} 
-                      />
-                    ))}
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {filteredPolicies.map(policy => (
-                    <div key={policy.id} className="relative">
-                      {policy.matchScore > 70 && (
-                        <div className="absolute -top-3 -left-3 z-10 bg-red-500 text-white text-[10px] font-black px-2 py-1 rounded-lg shadow-lg animate-bounce">
-                          강력추천
+                  {filteredPolicies.length > 0 ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+                      {filteredPolicies.map(policy => (
+                        <div key={policy.id} className="relative">
+                          {policy.matchScore > 70 && (
+                            <div className="absolute -top-3 -left-3 z-10 bg-red-500 text-white text-[10px] font-black px-2 py-1 rounded-lg shadow-lg animate-bounce">
+                              강력추천
+                            </div>
+                          )}
+                          <PolicyCard 
+                            policy={policy} 
+                            onClick={() => setSelectedPolicy(policy)}
+                          />
+                          <div className="absolute top-4 right-4 text-[10px] font-bold text-gray-400">
+                            매칭률 {policy.matchScore}%
+                          </div>
                         </div>
-                      )}
-                      <PolicyCard 
-                        policy={policy} 
-                        onClick={() => setSelectedPolicy(policy)}
-                      />
-                      <div className="absolute top-4 right-4 text-[10px] font-bold text-gray-400">
-                        매칭률 {policy.matchScore}%
-                      </div>
+                      ))}
                     </div>
-                  ))}
+                  ) : (
+                    <div className="py-20 text-center bg-white rounded-[2.5rem] border border-dashed border-gray-200">
+                      <p className="text-gray-400 font-medium">해당 조건에 맞는 정책이 없습니다. 🐥</p>
+                      <button 
+                        onClick={() => {setFilter('전체'); setSpecialFilter(null);}}
+                        className="mt-4 text-primary font-bold text-sm underline"
+                      >
+                        전체 보기로 돌아가기
+                      </button>
+                    </div>
+                  )}
                 </div>
+
+                {/* Right Sidebar - Trending Policies */}
+                <aside className="lg:w-80 space-y-8">
+                  <div className="bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-sm">
+                    <h2 className="text-lg font-bold text-gray-900 mb-6 flex items-center gap-2">
+                      <TrendingUp size={18} className="text-orange-500" />
+                      급상승 정책
+                    </h2>
+                    <div className="space-y-4">
+                      {trendingPolicies.map((policy, idx) => (
+                        <motion.div 
+                          key={policy.id}
+                          whileHover={{ x: 5 }}
+                          onClick={() => setSelectedPolicy(policy)}
+                          className="group flex items-center gap-4 cursor-pointer p-2 rounded-2xl hover:bg-gray-50 transition-all"
+                        >
+                          <div className="w-8 h-8 flex-shrink-0 bg-gray-50 text-gray-400 group-hover:bg-orange-50 group-hover:text-orange-500 rounded-lg flex items-center justify-center text-sm font-black transition-colors">
+                            {idx + 1}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-bold text-sm text-gray-900 truncate group-hover:text-primary transition-colors">{policy.title}</h3>
+                            <p className="text-[10px] text-gray-400">{(policy.views / 1000).toFixed(1)}k Views</p>
+                          </div>
+                        </motion.div>
+                      ))}
+                    </div>
+                    <button className="w-full mt-6 py-3 text-sm font-bold text-gray-400 hover:text-gray-600 transition-colors">
+                      트렌드 더보기
+                    </button>
+                  </div>
+
+                  {/* Banner inside Sidebar */}
+                  <div className="bg-blue-600 rounded-[2rem] p-6 text-white overflow-hidden relative">
+                    <div className="relative z-10">
+                      <h3 className="font-bold mb-2">1:1 멘토링</h3>
+                      <p className="text-xs text-blue-100 mb-4 leading-relaxed">나에게 맞는 정책,<br />전문가와 찾아보세요.</p>
+                      <button className="w-full py-2 bg-white text-blue-600 text-xs font-bold rounded-lg">
+                        신청하기
+                      </button>
+                    </div>
+                    <div className="absolute -right-4 -bottom-4 w-20 h-20 bg-white/10 rounded-full blur-2xl" />
+                  </div>
+                </aside>
               </div>
 
               {/* Banner */}
