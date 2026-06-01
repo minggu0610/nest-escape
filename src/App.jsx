@@ -33,7 +33,11 @@ const POLICIES = [
     benefit: "연 1.0%~1.3% 저금리",
     probability: 92,
     details: "만 19세~34세, 연소득 5천만원 이하 무주택 청년 대상",
-    documents: ["주민등록등본", "가족관계증명서", "소득금액증명원", "임대차계약서"]
+    documents: ["주민등록등본", "가족관계증명서", "소득금액증명원", "임대차계약서"],
+    views: 1240,
+    applicants: 850,
+    minIncome: 0,
+    maxIncome: 5000
   },
   {
     id: 2,
@@ -45,7 +49,11 @@ const POLICIES = [
     benefit: "월 최대 20만원 지원",
     probability: 75,
     details: "부모님과 별도 거주하는 무주택 청년 (중위소득 60% 이하)",
-    documents: ["월세이체확인증", "임대차계약서", "통장사본"]
+    documents: ["월세이체확인증", "임대차계약서", "통장사본"],
+    views: 3500,
+    applicants: 2100,
+    minIncome: 0,
+    maxIncome: 3000
   },
   {
     id: 3,
@@ -57,7 +65,11 @@ const POLICIES = [
     benefit: "시세의 30~50% 수준",
     probability: 60,
     details: "대학생, 취업준비생 및 만 19세~39세 청년",
-    documents: ["주민등록등본", "자산보유사실확인서", "재학증명서(해당자)"]
+    documents: ["주민등록등본", "자산보유사실확인서", "재학증명서(해당자)"],
+    views: 5600,
+    applicants: 1200,
+    minIncome: 0,
+    maxIncome: 4000
   },
   {
     id: 4,
@@ -69,147 +81,48 @@ const POLICIES = [
     benefit: "정부 기여금 + 비과세",
     probability: 99,
     details: "개인소득 7,500만원 이하, 가구소득 180% 이하 청년",
-    documents: ["소득확인서류", "신분증"]
+    documents: ["소득확인서류", "신분증"],
+    views: 8900,
+    applicants: 4500,
+    minIncome: 0,
+    maxIncome: 7500
+  },
+  {
+    id: 5,
+    title: "버팀목 전세자금대출",
+    category: "대출지원",
+    tag: "자격충족",
+    summary: "무주택 서민의 주거 안정을 위한 저금리 전세자금 대출",
+    dDay: "상시접수",
+    benefit: "연 1.8%~2.7% 금리",
+    probability: 88,
+    details: "부부합산 연소득 5천만원 이하 무주택 세대주",
+    documents: ["확정일자부 임대차계약서", "주민등록등본", "소득증빙서류"],
+    views: 4200,
+    applicants: 3100,
+    minIncome: 0,
+    maxIncome: 5000
   }
 ];
 
 // --- Components ---
 
-const InputField = ({ label, icon: Icon, ...props }) => (
-  <div className="space-y-2">
-    <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
-      <Icon size={16} className="text-primary" />
-      {label}
-    </label>
-    <input 
-      {...props}
-      className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
-    />
-  </div>
-);
-
-const PolicyCard = ({ policy, onClick }) => (
-  <motion.div 
-    whileHover={{ y: -5 }}
+const FilterButton = ({ label, active, onClick }) => (
+  <button 
     onClick={onClick}
-    className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md cursor-pointer transition-all"
+    className={cn(
+      "px-4 py-2 rounded-xl text-sm font-bold transition-all",
+      active ? "bg-primary text-white shadow-md shadow-primary/20" : "bg-white text-gray-500 hover:bg-gray-50 border border-gray-100"
+    )}
   >
-    <div className="flex justify-between items-start mb-4">
-      <span className="px-3 py-1 bg-blue-50 text-primary text-xs font-bold rounded-full">
-        {policy.category}
-      </span>
-      <span className={cn(
-        "text-xs font-medium px-2 py-1 rounded",
-        policy.tag === "자격충족" ? "bg-green-50 text-green-600" : "bg-orange-50 text-orange-600"
-      )}>
-        {policy.tag}
-      </span>
-    </div>
-    <h3 className="text-lg font-bold mb-2 text-gray-900">{policy.title}</h3>
-    <p className="text-sm text-gray-500 mb-4 line-clamp-2">{policy.summary}</p>
-    <div className="flex justify-between items-center pt-4 border-t border-gray-50">
-      <div className="flex items-center gap-1 text-red-500 font-bold text-sm">
-        <Clock size={14} />
-        {policy.dDay}
-      </div>
-      <div className="text-primary text-sm font-semibold flex items-center">
-        자세히 보기 <ChevronRight size={16} />
-      </div>
-    </div>
-  </motion.div>
+    {label}
+  </button>
 );
-
-const Modal = ({ policy, onClose }) => {
-  if (!policy) return null;
-
-  return (
-    <motion.div 
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
-      onClick={onClose}
-    >
-      <motion.div 
-        initial={{ scale: 0.9, y: 20 }}
-        animate={{ scale: 1, y: 0 }}
-        exit={{ scale: 0.9, y: 20 }}
-        className="bg-white w-full max-w-lg rounded-3xl overflow-hidden shadow-2xl"
-        onClick={e => e.stopPropagation()}
-      >
-        <div className="relative h-32 bg-primary flex items-end p-6">
-          <button 
-            onClick={onClose}
-            className="absolute top-4 right-4 p-2 bg-white/20 hover:bg-white/30 rounded-full text-white transition-colors"
-          >
-            <X size={20} />
-          </button>
-          <div className="text-white">
-            <span className="text-xs font-bold bg-white/20 px-2 py-1 rounded mb-2 inline-block">
-              {policy.category}
-            </span>
-            <h2 className="text-2xl font-bold">{policy.title}</h2>
-          </div>
-        </div>
-        
-        <div className="p-8 space-y-6 overflow-y-auto max-h-[70vh]">
-          <div>
-            <h4 className="text-sm font-bold text-gray-400 mb-2 uppercase tracking-wider">지원 혜택</h4>
-            <p className="text-xl font-bold text-primary">{policy.benefit}</p>
-          </div>
-
-          <div>
-            <h4 className="text-sm font-bold text-gray-400 mb-2 uppercase tracking-wider">합격 예상도</h4>
-            <div className="flex items-center gap-4">
-              <div className="flex-1 h-3 bg-gray-100 rounded-full overflow-hidden">
-                <motion.div 
-                  initial={{ width: 0 }}
-                  animate={{ width: `${policy.probability}%` }}
-                  transition={{ duration: 1, ease: "easeOut" }}
-                  className="h-full bg-primary"
-                />
-              </div>
-              <span className="font-bold text-primary">{policy.probability}%</span>
-            </div>
-            <p className="text-xs text-gray-500 mt-2 flex items-center gap-1">
-              <Info size={12} /> 유사 프로필 사용자 통계 기반 데이터입니다.
-            </p>
-          </div>
-
-          <div>
-            <h4 className="text-sm font-bold text-gray-400 mb-2 uppercase tracking-wider">상세 자격 조건</h4>
-            <p className="text-gray-700 leading-relaxed">{policy.details}</p>
-          </div>
-
-          <div className="bg-gray-50 p-6 rounded-2xl">
-            <h4 className="text-sm font-bold text-gray-800 mb-4 flex items-center gap-2">
-              <FileText size={18} className="text-primary" />
-              필요 서류 체크리스트
-            </h4>
-            <div className="grid grid-cols-1 gap-3">
-              {policy.documents.map((doc, i) => (
-                <div key={i} className="flex items-center gap-3 text-sm text-gray-600">
-                  <div className="w-5 h-5 rounded-md border border-gray-300 flex items-center justify-center">
-                    <CheckCircle2 size={14} className="text-gray-300" />
-                  </div>
-                  {doc}
-                </div>
-              ))}
-            </div>
-            <button className="w-full mt-6 py-3 bg-white border border-gray-200 text-gray-700 font-bold rounded-xl hover:bg-gray-50 transition-colors">
-              전자증명서 원클릭 열람
-            </button>
-          </div>
-        </div>
-      </motion.div>
-    </motion.div>
-  );
-};
 
 // --- Main App ---
 
 export default function App() {
-  const [step, setStep] = useState('auth'); // 'auth', 'onboarding', 'loading', 'dashboard'
+  const [step, setStep] = useState('auth'); 
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [user, setUser] = useState({ 
     name: '', 
@@ -220,6 +133,41 @@ export default function App() {
   });
   const [selectedPolicy, setSelectedPolicy] = useState(null);
   const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [filter, setFilter] = useState('전체');
+
+  // 추천 및 필터링 로직
+  const getFilteredPolicies = () => {
+    let list = [...POLICIES];
+    
+    // 1. 카테고리 필터링
+    if (filter !== '전체') {
+      list = list.filter(p => p.category === filter);
+    }
+
+    // 2. 가상 알고리즘 적용 (소득 기반 매칭 점수 계산)
+    return list.map(p => {
+      let matchScore = 0;
+      const userIncome = parseInt(user.income) || 0;
+      
+      // 소득 범위 안에 있으면 기본 점수 부여
+      if (userIncome >= p.minIncome && userIncome <= p.maxIncome) {
+        matchScore += 50;
+        // 소득이 최대치에 가까울수록 더 절실한 정책이라고 가정
+        matchScore += (userIncome / p.maxIncome) * 30;
+      }
+      
+      // 조회수와 신청자수 기반 인기도 합산
+      matchScore += (p.views / 1000) * 10;
+      matchScore += (p.applicants / 1000) * 10;
+
+      return { ...p, matchScore: Math.round(matchScore) };
+    }).sort((a, b) => b.matchScore - a.matchScore);
+  };
+
+  const trendingPolicies = [...POLICIES].sort((a, b) => b.views - a.views).slice(0, 3);
+  const filteredPolicies = getFilteredPolicies();
+
+  // ... (이전과 동일한 핸들러들)
 
   // 로컬 스토리지에서 유저 정보 불러오기
   useEffect(() => {
@@ -464,25 +412,66 @@ export default function App() {
                 </div>
               </div>
 
-              {/* Policy List */}
+              {/* Trending Section */}
+              <div className="mb-12">
+                <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+                  <TrendingUp size={20} className="text-orange-500" />
+                  지금 급상승 중인 정책
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  {trendingPolicies.map((policy, idx) => (
+                    <motion.div 
+                      key={policy.id}
+                      whileHover={{ scale: 1.02 }}
+                      onClick={() => setSelectedPolicy(policy)}
+                      className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm cursor-pointer flex items-center gap-4"
+                    >
+                      <div className="w-10 h-10 bg-orange-50 text-orange-500 rounded-xl flex items-center justify-center font-bold">
+                        {idx + 1}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-bold text-gray-900 truncate">{policy.title}</h3>
+                        <p className="text-xs text-gray-500">{(policy.views / 1000).toFixed(1)}k명이 확인 중</p>
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Policy List with Filters */}
               <div>
-                <div className="flex items-center justify-between mb-6">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
                   <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-                    추천 매칭 리스트
-                    <span className="text-xs font-medium px-2 py-0.5 bg-gray-100 text-gray-500 rounded-full">Best 4</span>
+                    {user.name}님께 딱 맞는 추천 리스트
                   </h2>
-                  <div className="flex items-center gap-2 text-sm text-gray-500">
-                    <Search size={16} /> 필터링 적용 중
+                  <div className="flex flex-wrap gap-2">
+                    {['전체', '대출지원', '월세지원', '공공임대', '자산형성'].map(cat => (
+                      <FilterButton 
+                        key={cat} 
+                        label={cat} 
+                        active={filter === cat} 
+                        onClick={() => setFilter(cat)} 
+                      />
+                    ))}
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                  {POLICIES.map(policy => (
-                    <PolicyCard 
-                      key={policy.id} 
-                      policy={policy} 
-                      onClick={() => setSelectedPolicy(policy)}
-                    />
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {filteredPolicies.map(policy => (
+                    <div key={policy.id} className="relative">
+                      {policy.matchScore > 70 && (
+                        <div className="absolute -top-3 -left-3 z-10 bg-red-500 text-white text-[10px] font-black px-2 py-1 rounded-lg shadow-lg animate-bounce">
+                          강력추천
+                        </div>
+                      )}
+                      <PolicyCard 
+                        policy={policy} 
+                        onClick={() => setSelectedPolicy(policy)}
+                      />
+                      <div className="absolute top-4 right-4 text-[10px] font-bold text-gray-400">
+                        매칭률 {policy.matchScore}%
+                      </div>
+                    </div>
                   ))}
                 </div>
               </div>
