@@ -209,21 +209,104 @@ const Modal = ({ policy, onClose }) => {
 // --- Main App ---
 
 export default function App() {
-  const [step, setStep] = useState('onboarding'); // 'onboarding', 'loading', 'dashboard'
-  const [user, setUser] = useState({ name: '홍길동', income: '', assets: '', region: '' });
+  const [step, setStep] = useState('auth'); // 'auth', 'onboarding', 'loading', 'dashboard'
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [user, setUser] = useState({ 
+    name: '', 
+    income: '', 
+    assets: '', 
+    region: '',
+    email: '' 
+  });
   const [selectedPolicy, setSelectedPolicy] = useState(null);
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
+
+  // 로컬 스토리지에서 유저 정보 불러오기
+  useEffect(() => {
+    const savedUser = localStorage.getItem('nest-user');
+    if (savedUser) {
+      setUser(JSON.parse(savedUser));
+      setIsLoggedIn(true);
+      setStep('dashboard');
+    }
+  }, []);
+
+  const handleLogin = (e) => {
+    e.preventDefault();
+    // 간단한 로그인 시뮬레이션
+    setIsLoggedIn(true);
+    setStep('onboarding');
+  };
 
   const handleStart = (e) => {
     e.preventDefault();
+    localStorage.setItem('nest-user', JSON.stringify(user));
     setStep('loading');
     setTimeout(() => {
       setStep('dashboard');
     }, 2500);
   };
 
+  const handleUpdateProfile = (e) => {
+    e.preventDefault();
+    localStorage.setItem('nest-user', JSON.stringify(user));
+    setIsEditingProfile(false);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('nest-user');
+    setIsLoggedIn(false);
+    setStep('auth');
+    setUser({ name: '', income: '', assets: '', region: '', email: '' });
+  };
+
   return (
     <div className="min-h-screen bg-secondary-bg">
       <AnimatePresence mode="wait">
+        {step === 'auth' && (
+          <motion.div 
+            key="auth"
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className="flex flex-col items-center justify-center min-h-screen p-6"
+          >
+            <div className="w-full max-w-md bg-white p-10 rounded-[2.5rem] shadow-xl border border-gray-100">
+              <div className="text-center mb-10">
+                <div className="text-4xl mb-4">🐥</div>
+                <h1 className="text-3xl font-black text-gray-900 mb-2">둥지탈출 시작하기</h1>
+                <p className="text-gray-500 font-medium">더 나은 주거 환경을 위한 첫 걸음</p>
+              </div>
+
+              <form onSubmit={handleLogin} className="space-y-6">
+                <InputField 
+                  label="이름(닉네임)" 
+                  icon={CheckCircle2}
+                  placeholder="사용하실 이름을 입력해주세요"
+                  required
+                  value={user.name}
+                  onChange={e => setUser({...user, name: e.target.value})}
+                />
+                <InputField 
+                  label="이메일" 
+                  icon={FileText}
+                  placeholder="example@email.com"
+                  type="email"
+                  required
+                  value={user.email}
+                  onChange={e => setUser({...user, email: e.target.value})}
+                />
+                <button 
+                  type="submit"
+                  className="w-full py-4 bg-primary text-white font-bold rounded-2xl shadow-lg shadow-primary/30 hover:brightness-110 active:scale-[0.98] transition-all text-lg"
+                >
+                  간편 가입 및 로그인
+                </button>
+              </form>
+            </div>
+          </motion.div>
+        )}
+
         {step === 'onboarding' && (
           <motion.div 
             key="onboarding"
@@ -234,8 +317,8 @@ export default function App() {
           >
             <div className="w-full max-w-md bg-white p-10 rounded-[2.5rem] shadow-xl border border-gray-100">
               <div className="text-center mb-10">
-                <h1 className="text-3xl font-black text-gray-900 mb-2">둥지탈출 🐥</h1>
-                <p className="text-gray-500 font-medium">청년 주거 정책, 딱 맞는 것만 골라드려요.</p>
+                <h1 className="text-2xl font-black text-gray-900 mb-2">{user.name}님, 반갑습니다!</h1>
+                <p className="text-gray-500 font-medium">정확한 정책 매칭을 위해 정보를 입력해주세요.</p>
               </div>
 
               <form onSubmit={handleStart} className="space-y-6">
@@ -291,7 +374,7 @@ export default function App() {
               transition={{ repeat: Infinity, duration: 2 }}
               className="space-y-2"
             >
-              <h2 className="text-xl font-bold text-gray-900">사용자님의 프로필을 분석 중입니다</h2>
+              <h2 className="text-xl font-bold text-gray-900">{user.name}님의 프로필을 분석 중입니다</h2>
               <p className="text-gray-500">전국 300여 개의 주거 정책과 대조하고 있어요...</p>
             </motion.div>
           </motion.div>
@@ -309,18 +392,49 @@ export default function App() {
               <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
                 <div className="text-primary font-black text-xl">둥지탈출</div>
                 <div className="flex items-center gap-4">
+                  <span className="text-sm font-bold text-gray-600">{user.name}님</span>
+                  <button 
+                    onClick={handleLogout}
+                    className="text-xs font-bold text-gray-400 hover:text-red-500 transition-colors"
+                  >
+                    로그아웃
+                  </button>
                   <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center text-sm font-bold text-gray-600">
-                    홍
+                    {user.name.substring(0, 1)}
                   </div>
                 </div>
               </div>
             </header>
 
             <main className="max-w-6xl mx-auto px-6 pt-10">
+              {/* Profile Bar */}
+              <div className="mb-8 p-6 bg-white border border-gray-100 rounded-3xl flex flex-wrap items-center justify-between gap-4">
+                <div className="flex flex-wrap items-center gap-6">
+                  <div className="flex items-center gap-2 text-sm">
+                    <MapPin size={16} className="text-primary" />
+                    <span className="font-bold">{user.region || '미설정'}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <Wallet size={16} className="text-primary" />
+                    <span className="font-bold">{user.income ? `${parseInt(user.income).toLocaleString()}만원` : '0원'}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <TrendingUp size={16} className="text-primary" />
+                    <span className="font-bold">{user.assets ? `${parseInt(user.assets).toLocaleString()}만원` : '0원'}</span>
+                  </div>
+                </div>
+                <button 
+                  onClick={() => setIsEditingProfile(true)}
+                  className="px-4 py-2 bg-gray-50 text-gray-600 text-sm font-bold rounded-xl hover:bg-gray-100 transition-all"
+                >
+                  내 조건 수정하기
+                </button>
+              </div>
+
               {/* Hero Section */}
               <div className="mb-12">
                 <h1 className="text-3xl font-black text-gray-900 mb-4 leading-tight">
-                  <span className="text-primary">홍길동님</span>을 위한<br />
+                  <span className="text-primary">{user.name}님</span>을 위한<br />
                   맞춤 주거 정책 진단 결과입니다 🏠
                 </h1>
                 
@@ -386,6 +500,68 @@ export default function App() {
                 <div className="absolute bottom-0 right-0 w-32 h-32 bg-white/10 rounded-full -mb-10 mr-20 blur-2xl" />
               </div>
             </main>
+
+            {/* Profile Edit Modal */}
+            <AnimatePresence>
+              {isEditingProfile && (
+                <motion.div 
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+                  onClick={() => setIsEditingProfile(false)}
+                >
+                  <motion.div 
+                    initial={{ scale: 0.9, y: 20 }}
+                    animate={{ scale: 1, y: 0 }}
+                    exit={{ scale: 0.9, y: 20 }}
+                    className="bg-white w-full max-w-md rounded-[2.5rem] p-8 shadow-2xl"
+                    onClick={e => e.stopPropagation()}
+                  >
+                    <div className="flex justify-between items-center mb-6">
+                      <h2 className="text-2xl font-bold">내 조건 수정</h2>
+                      <button onClick={() => setIsEditingProfile(false)} className="p-2 bg-gray-100 rounded-full text-gray-400">
+                        <X size={20} />
+                      </button>
+                    </div>
+                    <form onSubmit={handleUpdateProfile} className="space-y-4">
+                      <InputField 
+                        label="이름" 
+                        icon={CheckCircle2}
+                        value={user.name}
+                        onChange={e => setUser({...user, name: e.target.value})}
+                      />
+                      <InputField 
+                        label="거주 희망 지역" 
+                        icon={MapPin}
+                        value={user.region}
+                        onChange={e => setUser({...user, region: e.target.value})}
+                      />
+                      <InputField 
+                        label="작년 기준 연소득" 
+                        icon={Wallet}
+                        type="number"
+                        value={user.income}
+                        onChange={e => setUser({...user, income: e.target.value})}
+                      />
+                      <InputField 
+                        label="보유 자산 규모" 
+                        icon={TrendingUp}
+                        type="number"
+                        value={user.assets}
+                        onChange={e => setUser({...user, assets: e.target.value})}
+                      />
+                      <button 
+                        type="submit"
+                        className="w-full mt-4 py-4 bg-primary text-white font-bold rounded-2xl hover:brightness-110 transition-all"
+                      >
+                        저장하기
+                      </button>
+                    </form>
+                  </motion.div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </motion.div>
         )}
       </AnimatePresence>
