@@ -164,6 +164,91 @@ const FilterButton = ({ label, active, onClick }) => (
 );
 
 const Modal = ({ policy, onClose }) => {
+  if (!policy) return null;
+
+  return (
+    <motion.div 
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <motion.div 
+        initial={{ scale: 0.9, y: 20 }}
+        animate={{ scale: 1, y: 0 }}
+        exit={{ scale: 0.9, y: 20 }}
+        className="bg-white w-full max-w-lg rounded-3xl overflow-hidden shadow-2xl"
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="relative h-32 bg-primary flex items-end p-6">
+          <button 
+            onClick={onClose}
+            className="absolute top-4 right-4 p-2 bg-white/20 hover:bg-white/30 rounded-full text-white transition-colors"
+          >
+            <X size={20} />
+          </button>
+          <div className="text-white">
+            <span className="text-xs font-bold bg-white/20 px-2 py-1 rounded mb-2 inline-block">
+              {policy.category}
+            </span>
+            <h2 className="text-2xl font-bold">{policy.title}</h2>
+          </div>
+        </div>
+        
+        <div className="p-8 space-y-6 overflow-y-auto max-h-[70vh]">
+          <div>
+            <h4 className="text-sm font-bold text-gray-400 mb-2 uppercase tracking-wider">지원 혜택</h4>
+            <p className="text-xl font-bold text-primary">{policy.benefit}</p>
+          </div>
+
+          <div>
+            <h4 className="text-sm font-bold text-gray-400 mb-2 uppercase tracking-wider">합격 예상도</h4>
+            <div className="flex items-center gap-4">
+              <div className="flex-1 h-3 bg-gray-100 rounded-full overflow-hidden">
+                <motion.div 
+                  initial={{ width: 0 }}
+                  animate={{ width: `${policy.probability}%` }}
+                  transition={{ duration: 1, ease: "easeOut" }}
+                  className="h-full bg-primary"
+                />
+              </div>
+              <span className="font-bold text-primary">{policy.probability}%</span>
+            </div>
+            <p className="text-xs text-gray-500 mt-2 flex items-center gap-1">
+              <Info size={12} /> 유사 프로필 사용자 통계 기반 데이터입니다.
+            </p>
+          </div>
+
+          <div>
+            <h4 className="text-sm font-bold text-gray-400 mb-2 uppercase tracking-wider">상세 자격 조건</h4>
+            <p className="text-gray-700 leading-relaxed">{policy.details}</p>
+          </div>
+
+          <div className="bg-gray-50 p-6 rounded-2xl">
+            <h4 className="text-sm font-bold text-gray-800 mb-4 flex items-center gap-2">
+              <FileText size={18} className="text-primary" />
+              필요 서류 체크리스트
+            </h4>
+            <div className="grid grid-cols-1 gap-3">
+              {policy.documents.map((doc, i) => (
+                <div key={i} className="flex items-center gap-3 text-sm text-gray-600">
+                  <div className="w-5 h-5 rounded-md border border-gray-300 flex items-center justify-center">
+                    <CheckCircle2 size={14} className="text-gray-300" />
+                  </div>
+                  {doc}
+                </div>
+              ))}
+            </div>
+            <button className="w-full mt-6 py-3 bg-white border border-gray-200 text-gray-700 font-bold rounded-xl hover:bg-gray-50 transition-colors">
+              전자증명서 원클릭 열람
+            </button>
+          </div>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+};
 
 
 export default function App() {
