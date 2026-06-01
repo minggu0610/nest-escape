@@ -107,6 +107,50 @@ const POLICIES = [
 
 // --- Components ---
 
+const InputField = ({ label, icon: Icon, ...props }) => (
+  <div className="space-y-2">
+    <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
+      <Icon size={16} className="text-primary" />
+      {label}
+    </label>
+    <input 
+      {...props}
+      className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+    />
+  </div>
+);
+
+const PolicyCard = ({ policy, onClick }) => (
+  <motion.div 
+    whileHover={{ y: -5 }}
+    onClick={onClick}
+    className="relative bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md cursor-pointer transition-all"
+  >
+    <div className="flex justify-between items-start mb-4">
+      <span className="px-3 py-1 bg-blue-50 text-primary text-xs font-bold rounded-full">
+        {policy.category}
+      </span>
+      <span className={cn(
+        "text-xs font-medium px-2 py-1 rounded",
+        policy.tag === "자격충족" ? "bg-green-50 text-green-600" : "bg-orange-50 text-orange-600"
+      )}>
+        {policy.tag}
+      </span>
+    </div>
+    <h3 className="text-lg font-bold mb-2 text-gray-900">{policy.title}</h3>
+    <p className="text-sm text-gray-500 mb-4 line-clamp-2">{policy.summary}</p>
+    <div className="flex justify-between items-center pt-4 border-t border-gray-50">
+      <div className="flex items-center gap-1 text-red-500 font-bold text-sm">
+        <Clock size={14} />
+        {policy.dDay}
+      </div>
+      <div className="text-primary text-sm font-semibold flex items-center">
+        자세히 보기 <ChevronRight size={16} />
+      </div>
+    </div>
+  </motion.div>
+);
+
 const FilterButton = ({ label, active, onClick }) => (
   <button 
     onClick={onClick}
@@ -119,7 +163,8 @@ const FilterButton = ({ label, active, onClick }) => (
   </button>
 );
 
-// --- Main App ---
+const Modal = ({ policy, onClose }) => {
+
 
 export default function App() {
   const [step, setStep] = useState('auth'); 
