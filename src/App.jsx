@@ -171,11 +171,19 @@ export default function App() {
 
   // 로컬 스토리지에서 유저 정보 불러오기
   useEffect(() => {
-    const savedUser = localStorage.getItem('nest-user');
-    if (savedUser) {
-      setUser(JSON.parse(savedUser));
-      setIsLoggedIn(true);
-      setStep('dashboard');
+    try {
+      const savedUser = localStorage.getItem('nest-user');
+      if (savedUser) {
+        const parsedUser = JSON.parse(savedUser);
+        if (parsedUser && parsedUser.name) {
+          setUser(parsedUser);
+          setIsLoggedIn(true);
+          setStep('dashboard');
+        }
+      }
+    } catch (error) {
+      console.error("사용자 정보를 불러오는데 실패했습니다:", error);
+      localStorage.removeItem('nest-user');
     }
   }, []);
 
