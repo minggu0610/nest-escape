@@ -31,6 +31,18 @@ const InputField = ({ label, icon: Icon, type = "text", ...props }) => (
   </div>
 );
 
+const FilterButton = ({ label, active, onClick }) => (
+  <button 
+    onClick={onClick}
+    className={cn(
+      "px-3 py-1.5 rounded-xl text-[11px] font-black transition-all whitespace-nowrap border",
+      active ? "bg-primary text-white border-primary shadow-md shadow-primary/20" : "bg-white text-gray-400 border-gray-100 hover:bg-gray-50"
+    )}
+  >
+    {label}
+  </button>
+);
+
 const PolicyCard = ({ policy, onClick, isScrapped, onScrap, isHighlyRecommended }) => (
   <motion.div 
     whileHover={{ y: -4 }}
@@ -86,6 +98,86 @@ const PolicyCard = ({ policy, onClick, isScrapped, onScrap, isHighlyRecommended 
 );
 
 // --- MODALS ---
+
+const MentoringModal = ({ onClose }) => (
+  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={onClose}>
+    <motion.div initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }} className="bg-white w-full max-w-sm rounded-[2rem] p-7 shadow-2xl" onClick={e => e.stopPropagation()}>
+      <div className="flex justify-between items-center mb-5">
+        <h2 className="text-lg font-black flex items-center gap-2 tracking-tight"><Users className="text-primary" size={18}/> 멘토링 신청</h2>
+        <button onClick={onClose} className="p-1.5 bg-gray-100 rounded-full text-gray-400 hover:bg-gray-200"><X size={16} /></button>
+      </div>
+      <p className="text-gray-500 text-[11px] font-bold mb-6 leading-relaxed">정책 전문가와 AI가 님의 상황에 맞는 최적의 신청 전략을 세워드립니다.</p>
+      <div className="space-y-3">
+        <button className="w-full flex items-center gap-3.5 p-4 rounded-2xl border border-primary/20 bg-blue-50/30 hover:bg-blue-50 transition-all text-left group" onClick={() => { alert('AI 멘토링 세션이 생성되었습니다.'); onClose(); }}>
+          <div className="w-10 h-10 bg-primary text-white rounded-xl flex items-center justify-center shadow-md group-hover:scale-105 transition-transform"><Bot size={20} /></div>
+          <div><h3 className="font-black text-gray-900 text-[13px]">AI 실시간 멘토링</h3><p className="text-[10px] text-gray-400 font-bold">24시간 즉각적인 서류/절차 답변</p></div>
+        </button>
+        <button className="w-full flex items-center gap-3.5 p-4 rounded-2xl border border-gray-100 bg-white hover:bg-gray-50 transition-all text-left group" onClick={() => { alert('실무자 매칭이 요청되었습니다.'); onClose(); }}>
+          <div className="w-10 h-10 bg-gray-800 text-white rounded-xl flex items-center justify-center shadow-md group-hover:scale-105 transition-transform"><User size={20} /></div>
+          <div><h3 className="font-black text-gray-900 text-[13px]">실무자 1:1 상담</h3><p className="text-[10px] text-gray-400 font-bold">복잡한 케이스에 대한 심층 케어</p></div>
+        </button>
+      </div>
+    </motion.div>
+  </motion.div>
+);
+
+const MockApplyModal = ({ policy, onClose, setApplications }) => {
+  const [loading, setLoading] = useState(true);
+  useEffect(() => { setTimeout(() => setLoading(false), 2000); }, []);
+
+  const handleRealApply = () => {
+    setApplications(prev => {
+      if(prev.find(p => p.policyId === policy.id)) return prev;
+      return [...prev, { policyId: policy.id, status: '접수완료', date: new Date().toISOString().split('T')[0] }];
+    });
+    alert('실제 신청이 접수되었습니다! 내 정보 탭에서 현황을 확인하세요.');
+    onClose();
+  };
+
+  if (loading) {
+    return (
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[60] flex flex-col items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+        <Activity size={32} className="text-primary animate-spin mb-4" />
+        <h2 className="text-white text-lg font-black mb-1">알고리즘 모의 진단 중...</h2>
+        <p className="text-white/50 text-[11px] font-bold">과거 합격 데이터와 님의 프로필을 정밀 대조하고 있습니다.</p>
+      </motion.div>
+    );
+  }
+
+  const isHighProb = policy.probability >= 80;
+
+  return (
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={onClose}>
+      <motion.div initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }} className="bg-white w-full max-w-sm rounded-[2rem] overflow-hidden shadow-2xl" onClick={e => e.stopPropagation()}>
+        <div className={cn("p-7 text-center text-white", isHighProb ? "bg-primary" : "bg-orange-500")}>
+          <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-3">
+            {isHighProb ? <Target size={24} /> : <AlertCircle size={24} />}
+          </div>
+          <h2 className="text-xl font-black mb-1">{isHighProb ? "합격 안정권입니다!" : "보완이 필요해 보여요"}</h2>
+          <p className="text-[10px] font-bold opacity-80">{policy.title}</p>
+        </div>
+        <div className="p-7 space-y-5 bg-gray-50/50">
+          <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm text-center">
+            <p className="text-[10px] text-gray-400 font-black mb-1.5 uppercase tracking-widest">Expected Success Rate</p>
+            <p className={cn("text-4xl font-black", isHighProb ? "text-primary" : "text-orange-500")}>{policy.probability}%</p>
+          </div>
+          
+          {!isHighProb && (
+            <div className="bg-orange-50 p-4 rounded-xl border border-orange-100">
+              <h4 className="font-black text-orange-800 text-[11px] mb-1.5 flex items-center gap-1.5"><ShieldCheck size={14}/> 리바운드 케어 알림</h4>
+              <p className="text-[10px] text-orange-700 font-medium leading-relaxed">소득 조건에서 약간의 차이가 발견되었습니다. 탈락 시 대체 가능한 정책 매칭 리스트를 생성했습니다.</p>
+            </div>
+          )}
+
+          <div className="flex gap-2">
+            <button onClick={onClose} className="flex-1 py-3.5 bg-white border border-gray-200 text-gray-500 font-black rounded-xl text-xs hover:bg-gray-50 transition-all">닫기</button>
+            <button onClick={handleRealApply} className="flex-[1.5] py-3.5 bg-gray-900 text-white font-black rounded-xl text-xs hover:bg-black transition-all shadow-lg">즉시 신청하기</button>
+          </div>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+};
 
 const EmailAlertModal = ({ policy, onClose }) => (
   <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={onClose}>
