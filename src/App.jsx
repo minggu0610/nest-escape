@@ -12,7 +12,6 @@ import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { OCCUPATIONS, MARITAL_STATUS, HOUSING_TYPES } from './constants/options';
 import { SelectionCard } from './components/OnboardingComponents';
-import { POLICIES } from './constants/policies';
 
 function cn(...inputs) {
   return twMerge(clsx(inputs));
@@ -452,6 +451,19 @@ export default function App() {
 
   const [filter, setFilter] = useState('전체');
   const [specialFilter, setSpecialFilter] = useState(null);
+  
+  const [policiesData, setPoliciesData] = useState([]);
+
+  useEffect(() => {
+    fetch('http://localhost:8080/api/policies')
+      .then(res => res.json())
+      .then(data => {
+        if(data.success) {
+          setPoliciesData(data.data);
+        }
+      })
+      .catch(err => console.error("API fetch error:", err));
+  }, []);
 
   useEffect(() => {
     try {
