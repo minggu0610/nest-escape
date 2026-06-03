@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Search, MapPin, Wallet, TrendingUp, ChevronRight, 
@@ -6,7 +6,7 @@ import {
   Heart, User, Home, ArrowLeft, Bookmark, Share2,
   FileCheck, Bot, Users, Activity, Target, ShieldCheck, Download,
   Bell, BellRing, Settings, Lock, BarChart3, Fingerprint,
-  MessageCircle, CornerDownRight
+  MessageCircle, CornerDownRight, Send
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -100,7 +100,97 @@ const PolicyCard = ({ policy, onClick, isScrapped, onScrap, isHighlyRecommended 
 
 // --- MODALS ---
 
-const MentoringModal = ({ onClose }) => (
+const AIChatbotModal = ({ onClose }) => {
+  const [messages, setMessages] = useState([
+    { id: 1, type: 'bot', text: '안녕하세요! 둥지탈출 AI 멘토입니다. 주거 정책 서류 준비나 신청 절차 중 궁금한 점이 있으신가요?' }
+  ]);
+  const [input, setInput] = useState('');
+  const [isTyping, setIsTyping] = useState(false);
+  const messagesEndRef = useRef(null);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages, isTyping]);
+
+  const handleSend = (e) => {
+    e.preventDefault();
+    if (!input.trim()) return;
+
+    const newMsg = { id: Date.now(), type: 'user', text: input };
+    setMessages(prev => [...prev, newMsg]);
+    setInput('');
+    setIsTyping(true);
+
+    // AI Response Simulation
+    setTimeout(() => {
+      setIsTyping(false);
+      setMessages(prev => [...prev, { 
+        id: Date.now() + 1, 
+        type: 'bot', 
+        text: '네, 질문해주신 내용에 대한 답변입니다. 프리랜서의 경우 종합소득세 신고 내역서나 위촉증명서 등 소득을 증빙할 수 있는 서류를 발급받아 제출하시면 됩니다. 마이페이지의 서류 보관함 연동 기능을 활용하시면 더 편리합니다!' 
+      }]);
+    }, 1500);
+  };
+
+  return (
+    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }} className="fixed inset-x-4 bottom-4 md:right-4 md:left-auto md:w-96 h-[500px] z-[80] bg-white rounded-3xl shadow-2xl border border-gray-100 flex flex-col overflow-hidden">
+      {/* Chat Header */}
+      <div className="bg-primary p-4 flex justify-between items-center text-white shrink-0">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center"><Bot size={18} /></div>
+          <div>
+            <h3 className="font-black text-sm">AI 멘토 실시간 상담</h3>
+            <p className="text-[10px] text-primary-100 flex items-center gap-1"><span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse"></span>Online</p>
+          </div>
+        </div>
+        <button onClick={onClose} className="p-2 hover:bg-white/20 rounded-full transition-colors"><X size={18}/></button>
+      </div>
+
+      {/* Chat Messages */}
+      <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50/50">
+        {messages.map(msg => (
+          <div key={msg.id} className={cn("flex", msg.type === 'user' ? "justify-end" : "justify-start")}>
+            <div className={cn("max-w-[80%] rounded-2xl p-3 text-xs font-medium leading-relaxed shadow-sm", msg.type === 'user' ? "bg-gray-900 text-white rounded-br-sm" : "bg-white border border-gray-100 text-gray-800 rounded-bl-sm")}>
+              {msg.text}
+            </div>
+          </div>
+        ))}
+        {isTyping && (
+          <div className="flex justify-start">
+            <div className="bg-white border border-gray-100 rounded-2xl rounded-bl-sm p-3 shadow-sm flex gap-1">
+              <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce"></span>
+              <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></span>
+              <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></span>
+            </div>
+          </div>
+        )}
+        <div ref={messagesEndRef} />
+      </div>
+
+      {/* Chat Input */}
+      <form onSubmit={handleSend} className="p-3 bg-white border-t border-gray-100 shrink-0">
+        <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-2xl p-1 pr-2">
+          <input 
+            type="text" 
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            placeholder="궁금한 점을 물어보세요..." 
+            className="flex-1 bg-transparent px-3 py-2 text-xs outline-none"
+          />
+          <button type="submit" disabled={!input.trim()} className="w-8 h-8 bg-primary text-white rounded-xl flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed hover:bg-primary/90 transition-colors">
+            <Send size={14} className="-ml-0.5" />
+          </button>
+        </div>
+      </form>
+    </motion.div>
+  );
+};
+
+const MentoringModal = ({ onClose, onOpenAI }) => (
   <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={onClose}>
     <motion.div initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }} className="bg-white w-full max-w-sm rounded-[2rem] p-7 shadow-2xl" onClick={e => e.stopPropagation()}>
       <div className="flex justify-between items-center mb-5">
@@ -109,7 +199,7 @@ const MentoringModal = ({ onClose }) => (
       </div>
       <p className="text-gray-500 text-[11px] font-bold mb-6 leading-relaxed">정책 전문가와 AI가 님의 상황에 맞는 최적의 신청 전략을 세워드립니다.</p>
       <div className="space-y-3">
-        <button className="w-full flex items-center gap-3.5 p-4 rounded-2xl border border-primary/20 bg-blue-50/30 hover:bg-blue-50 transition-all text-left group" onClick={() => { alert('AI 멘토링 세션이 생성되었습니다.'); onClose(); }}>
+        <button className="w-full flex items-center gap-3.5 p-4 rounded-2xl border border-primary/20 bg-blue-50/30 hover:bg-blue-50 transition-all text-left group" onClick={() => { onOpenAI(); onClose(); }}>
           <div className="w-10 h-10 bg-primary text-white rounded-xl flex items-center justify-center shadow-md group-hover:scale-105 transition-transform"><Bot size={20} /></div>
           <div><h3 className="font-black text-gray-900 text-[13px]">AI 실시간 멘토링</h3><p className="text-[10px] text-gray-400 font-bold">24시간 즉각적인 서류/절차 답변</p></div>
         </button>
@@ -358,6 +448,7 @@ export default function App() {
   const [showMockApply, setShowMockApply] = useState(false);
   const [showMentoring, setShowMentoring] = useState(false);
   const [showAlert, setShowAlert] = useState(false);
+  const [showAIChat, setShowAIChat] = useState(false);
 
   const [filter, setFilter] = useState('전체');
   const [specialFilter, setSpecialFilter] = useState(null);
@@ -436,7 +527,7 @@ export default function App() {
   const toggleScrap = (id) => setSavedPolicyIds(prev => prev.includes(id) ? prev.filter(sid => sid !== id) : [...prev, id]);
 
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-900 font-sans tracking-tight">
+    <div className="min-h-screen bg-gray-50 text-gray-900 font-sans tracking-tight relative">
       <AnimatePresence mode="wait">
         
         {step === 'auth' && (
@@ -663,8 +754,9 @@ export default function App() {
       </AnimatePresence>
 
       <AnimatePresence>{showAlert && selectedPolicy && <EmailAlertModal policy={selectedPolicy} onClose={() => setShowAlert(false)} />}</AnimatePresence>
-      <AnimatePresence>{showMentoring && <MentoringModal onClose={() => setShowMentoring(false)} />}</AnimatePresence>
+      <AnimatePresence>{showMentoring && <MentoringModal onClose={() => setShowMentoring(false)} onOpenAI={() => setShowAIChat(true)} />}</AnimatePresence>
       <AnimatePresence>{showMockApply && selectedPolicy && (<MockApplyModal policy={selectedPolicy} onClose={() => setShowMockApply(false)} setApplications={setApplications} />)}</AnimatePresence>
+      <AnimatePresence>{showAIChat && <AIChatbotModal onClose={() => setShowAIChat(false)} />}</AnimatePresence>
 
     </div>
   );
