@@ -383,6 +383,7 @@ export default function App() {
   // Handlers
   const handleStart = (e) => { e.preventDefault(); localStorage.setItem('nest-user', JSON.stringify(user)); setStep('loading'); setTimeout(() => setStep('dashboard'), 2500); };
   const handleLogout = () => { localStorage.clear(); setIsLoggedIn(false); setStep('auth'); setOnboardingSubStep(1); setView('main'); };
+  const toggleScrap = (id) => setSavedPolicyIds(prev => prev.includes(id) ? prev.filter(sid => sid !== id) : [...prev, id]);
 
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900 font-sans tracking-tight">
