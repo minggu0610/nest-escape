@@ -5,7 +5,8 @@ import {
   CheckCircle2, Clock, Info, X, FileText, AlertCircle,
   Heart, User, Home, ArrowLeft, Bookmark, Share2,
   FileCheck, Bot, Users, Activity, Target, ShieldCheck, Download,
-  Bell, BellRing, Settings, Lock, BarChart3, Fingerprint
+  Bell, BellRing, Settings, Lock, BarChart3, Fingerprint,
+  MessageCircle, CornerDownRight
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -279,6 +280,54 @@ const MainDetailModal = ({
               </div>
             </div>
           </div>
+
+          <div className="pt-2 border-t border-gray-100">
+            <h4 className="text-[12px] font-black text-gray-900 mb-3 flex items-center gap-1.5">
+              <MessageCircle size={14} className="text-primary" />
+              실제 합격자 찐 후기 & Q&A
+            </h4>
+            
+            <div className="bg-white p-3.5 rounded-2xl border border-gray-100 mb-2">
+              <div className="flex justify-between items-center mb-1.5">
+                <div className="flex items-center gap-1.5">
+                  <span className="bg-green-500 text-white text-[8px] font-black px-1.5 py-0.5 rounded">합격</span>
+                  <span className="text-[11px] font-bold text-gray-900">자취N년차</span>
+                  <span className="text-[9px] text-gray-400">연소득 3,200 · 2일 전</span>
+                </div>
+                <button className="text-[9px] text-gray-400 hover:text-red-500 flex items-center gap-0.5"><Heart size={10}/> 24</button>
+              </div>
+              <p className="text-[10px] text-gray-700 leading-relaxed font-medium">
+                서류가 제일 막막했는데, 여기서 일괄 발급받고 바로 통과했습니다! 꿀팁: 은행 가실 때 꼭 오전에 가세요. 대기 엄청 깁니다 ㅠㅠ
+              </p>
+            </div>
+
+            <div className="bg-white p-3.5 rounded-2xl border border-gray-100 mb-3">
+              <div className="flex justify-between items-center mb-1.5">
+                <div className="flex items-center gap-1.5">
+                  <span className="bg-gray-400 text-white text-[8px] font-black px-1.5 py-0.5 rounded">질문</span>
+                  <span className="text-[11px] font-bold text-gray-900">둥지찾는새</span>
+                  <span className="text-[9px] text-gray-400">프리랜서 · 5시간 전</span>
+                </div>
+                <button className="text-[9px] text-gray-400 hover:text-red-500 flex items-center gap-0.5"><Heart size={10}/> 5</button>
+              </div>
+              <p className="text-[10px] text-gray-700 leading-relaxed font-medium mb-2">
+                프리랜서라서 소득 증빙이 헷갈리는데, 저 같은 분들 어떻게 준비하셨나요?
+              </p>
+              <div className="bg-blue-50/50 p-2 rounded-xl border border-blue-100 flex gap-1.5">
+                <CornerDownRight size={10} className="text-primary mt-0.5 flex-shrink-0" />
+                <div>
+                   <span className="text-[9px] font-black text-primary">AI 멘토봇</span>
+                   <p className="text-[9px] text-gray-600 mt-0.5 font-medium leading-relaxed">프리랜서의 경우 종합소득세 신고 내역서나 위촉증명서가 필요합니다. 상단의 '멘토링 신청'을 이용해 보세요!</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex gap-2 mt-2">
+              <input type="text" placeholder="질문이나 팁을 남겨보세요..." className="flex-1 bg-white border border-gray-200 text-[10px] px-3 py-2 rounded-xl outline-none focus:border-primary transition-all font-medium" />
+              <button className="bg-gray-900 text-white px-3 py-2 rounded-xl text-[10px] font-black hover:bg-black transition-colors">등록</button>
+            </div>
+          </div>
+
         </div>
 
         <div className="p-5 bg-white border-t border-gray-100 flex gap-2 flex-shrink-0">
