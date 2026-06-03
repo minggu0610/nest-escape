@@ -379,6 +379,7 @@ export default function App() {
 
   const totalBenefitAmount = useMemo(() => processedPolicies.filter(p => p.tag === "자격충족").reduce((acc, curr) => acc + curr.benefitAmount, 0), [processedPolicies]);
   const appliedPolicies = useMemo(() => applications.map(app => ({...processedPolicies.find(po => po.id === app.policyId), appStatus: app.status, applyDate: app.date})).filter(p => p.id), [applications, processedPolicies]);
+  const savedPolicies = useMemo(() => processedPolicies.filter(p => savedPolicyIds.includes(p.id)), [processedPolicies, savedPolicyIds]);
 
   // Handlers
   const handleStart = (e) => { e.preventDefault(); localStorage.setItem('nest-user', JSON.stringify(user)); setStep('loading'); setTimeout(() => setStep('dashboard'), 2500); };
