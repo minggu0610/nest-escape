@@ -305,6 +305,14 @@ const MainDetailModal = ({
     alert('필요한 서류가 모두 발급(연동)되어 서류함에 저장되었습니다.');
   };
 
+  const openOriginalNotice = () => {
+    if (policy.originalUrl) {
+      window.open(policy.originalUrl, '_blank', 'noopener,noreferrer');
+    } else {
+      alert('상세 공고 링크가 제공되지 않는 정책입니다.');
+    }
+  };
+
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={onClose}>
       <motion.div initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 20 }} className="bg-white w-full max-w-xl rounded-[2rem] overflow-hidden shadow-2xl flex flex-col max-h-[85vh]" onClick={e => e.stopPropagation()}>
@@ -421,7 +429,9 @@ const MainDetailModal = ({
         </div>
 
         <div className="p-5 bg-white border-t border-gray-100 flex gap-2 flex-shrink-0">
-          <button onClick={() => alert('전자서명 뷰어 호출(Demo)')} className="flex-1 py-3.5 bg-gray-100 text-gray-700 text-sm font-black rounded-xl hover:bg-gray-200 transition-all">전자서명 열람</button>
+          <button onClick={openOriginalNotice} className="flex-1 py-3.5 bg-gray-100 text-gray-700 text-sm font-black rounded-xl hover:bg-gray-200 transition-all flex items-center justify-center gap-2">
+            <Share2 size={16} /> 원문 공고 보기
+          </button>
           <button onClick={onOpenMock} className="flex-[1.5] py-3.5 bg-primary text-white text-sm font-black rounded-xl hover:brightness-110 transition-all shadow-lg shadow-primary/20">신청 시작하기</button>
         </div>
       </motion.div>
@@ -487,7 +497,8 @@ export default function App() {
               minIncome: 0,
               maxIncome: 4500,
               regions: [item.CNP_CD_NM],
-              occupations: ["대학생", "취업준비생", "직장인", "청년"]
+              occupations: ["대학생", "취업준비생", "직장인", "청년"],
+              originalUrl: item.DTL_URL
             }));
             combinedData = [...combinedData, ...mappedLH];
           }
