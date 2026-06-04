@@ -12,6 +12,7 @@ import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { OCCUPATIONS, MARITAL_STATUS, HOUSING_TYPES } from './constants/options';
 import { SelectionCard } from './components/OnboardingComponents';
+import { POLICIES as MOCK_POLICIES } from './constants/policies';
 
 function cn(...inputs) {
   return twMerge(clsx(inputs));
@@ -455,14 +456,53 @@ export default function App() {
   const [policiesData, setPoliciesData] = useState([]);
 
   useEffect(() => {
-    fetch('http://localhost:8080/api/policies')
-      .then(res => res.json())
-      .then(data => {
-        if(data.success) {
-          setPoliciesData(data.data);
+    const fetchAllData = async () => {
+      try {
+        const API_BASE = window.location.hostname === 'localhost' ? 'http://localhost:8080' : 'https://nest-escape-api.user.workers.dev';
+        
+        // Fetch Mock Policies
+        const mockRes = await fetch(`${API_BASE}/api/policies`);
+        const mockJson = await mockRes.json();
+        let combinedData = mockJson.success ? mockJson.data : MOCK_POLICIES;
+
+        // Fetch LH Notices
+        try {
+          const lhRes = await fetch(`${API_BASE}/api/lh-notices?UPP_AIS_TP_CD=06&PG_SZ=10`);
+          const lhJson = await lhRes.json();
+          if (lhJson.success && lhJson.data && lhJson.data[1]?.dsList) {
+            const mappedLH = lhJson.data[1].dsList.map(item => ({
+              id: item.PAN_ID,
+              title: item.PAN_NM,
+              category: "공공임대",
+              tag: item.PAN_SS === "공고중" ? "자격충족" : "확인필요",
+              summary: item.AIS_TP_CD_NM,
+              dDay: item.CLSG_DT ? `D-${Math.ceil((new Date(item.CLSG_DT.replace(/\./g, '-')) - new Date()) / (1000 * 60 * 60 * 24))}` : '상시',
+              benefit: "시세 대비 저렴한 임대료",
+              benefitAmount: 2000, 
+              probability: 65,
+              details: `${item.CNP_CD_NM} 지역의 ${item.AIS_TP_CD_NM} 공고입니다. 상세 내용은 LH 청약플러스에서 확인하세요.`,
+              documents: ["주민등록등본", "가족관계증명서", "소득금액증명원"],
+              views: Math.floor(Math.random() * 5000),
+              applicants: Math.floor(Math.random() * 1000),
+              minIncome: 0,
+              maxIncome: 4500,
+              regions: [item.CNP_CD_NM],
+              occupations: ["대학생", "취업준비생", "직장인", "청년"]
+            }));
+            combinedData = [...combinedData, ...mappedLH];
+          }
+        } catch (lhErr) {
+          console.error("LH API fetch error:", lhErr);
         }
-      })
-      .catch(err => console.error("API fetch error:", err));
+
+        setPoliciesData(combinedData);
+      } catch (err) {
+        console.error("API fetch error:", err);
+        setPoliciesData(MOCK_POLICIES);
+      }
+    };
+
+    fetchAllData();
   }, []);
 
   useEffect(() => {
@@ -495,11 +535,13 @@ export default function App() {
     const userRegion = user.region || '';
     const userOccupation = user.occupation || '';
 
-    return POLICIES.map(p => {
+    const baseData = policiesData.length > 0 ? policiesData : MOCK_POLICIES;
+
+    return baseData.map(p => {
       let score = 0;
       let tag = "확인필요";
       const incMatch = userIncome >= p.minIncome && userIncome <= p.maxIncome;
-      const regMatch = p.regions.includes("전국") || userRegion.includes(p.regions[0]);
+      const regMatch = p.regions.includes("전국") || userRegion.includes(p.regions[0]) || (p.regions[0] && userRegion.includes(p.regions[0].substring(0, 2)));
       const occMatch = p.occupations.includes(userOccupation);
       
       if (incMatch) score += 40;
@@ -519,7 +561,7 @@ export default function App() {
         ]
       };
     }).sort((a, b) => b.matchScore - a.matchScore);
-  }, [user]);
+  }, [user, policiesData]);
 
   const filteredPolicies = useMemo(() => {
     let list = processedPolicies.filter(p => p.tag !== "부적격");
