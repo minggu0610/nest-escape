@@ -1,11 +1,11 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  Search, MapPin, Wallet, TrendingUp, ChevronRight, 
-  CheckCircle2, Clock, Info, X, FileText, AlertCircle,
-  Heart, User, Home, ArrowLeft, Bookmark, Share2,
+  MapPin, Wallet, TrendingUp, ChevronRight, 
+  CheckCircle2, Clock, X, FileText, AlertCircle,
+  Heart, User, Share2,
   FileCheck, Bot, Users, Activity, Target, ShieldCheck, Download,
-  Bell, BellRing, Settings, Lock, BarChart3, Fingerprint,
+  Bell, BellRing, BarChart3, Fingerprint,
   MessageCircle, CornerDownRight, Send
 } from 'lucide-react';
 import { clsx } from 'clsx';
@@ -415,7 +415,7 @@ const MainDetailModal = ({
                 <CornerDownRight size={10} className="text-primary mt-0.5 flex-shrink-0" />
                 <div>
                    <span className="text-[9px] font-black text-primary">AI 멘토봇</span>
-                   <p className="text-[9px] text-gray-600 mt-0.5 font-medium leading-relaxed">프리랜서의 경우 종합소득세 신고 내역서나 위촉증명서가 필요합니다. 상단의 '멘토링 신청'을 이용해 보세요!</p>
+                   <p className="text-[9px] text-gray-600 mt-0.5 font-medium leading-relaxed">프리랜서의 경우 종합소득세 신고 내역서나 위촉증명서가 필요합니다. 상단의 &apos;멘토링 신청&apos;을 이용해 보세요!</p>
                 </div>
               </div>
             </div>
@@ -530,7 +530,7 @@ export default function App() {
       if (savedScraps) setSavedPolicyIds(JSON.parse(savedScraps));
       if (savedDocs) setIssuedDocs(JSON.parse(savedDocs));
       if (savedApps) setApplications(JSON.parse(savedApps));
-    } catch (e) { localStorage.clear(); }
+    } catch { localStorage.clear(); }
   }, []);
 
   useEffect(() => {
