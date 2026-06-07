@@ -275,7 +275,7 @@ export default function App() {
               <form onSubmit={onboardingSubStep === 3 ? handleStart : (e) => { e.preventDefault(); setOnboardingSubStep(s => s+1); }} className="space-y-5">
                 {onboardingSubStep === 1 && (
                   <motion.div initial={{ x: 10, opacity: 0 }} animate={{ x: 0, opacity: 1 }} className="space-y-5">
-                    <InputField label="생년월일" icon={Clock} type="date" required value={user.birthdate} onChange={e => setUser({...user, birthdate: e.target.value})} />
+                    <InputField label="생년월일" icon={Clock} placeholder="예: 2003/06/10" required value={user.birthdate} onChange={e => setUser({...user, birthdate: e.target.value})} />
                     <div className="space-y-2"><label className="text-[11px] font-black text-gray-500 flex items-center gap-1.5"><TrendingUp size={14} className="text-primary" />직업 분류</label><div className="grid grid-cols-2 gap-2">{OCCUPATIONS.map(occ => (<SelectionCard key={occ} label={occ} selected={user.occupation === occ} onClick={() => setUser({...user, occupation: occ})} />))}</div></div>
                     <div className="space-y-2"><label className="text-[11px] font-black text-gray-500 flex items-center gap-1.5"><CheckCircle2 size={14} className="text-primary" />혼인 구분</label><div className="grid grid-cols-3 gap-2">{MARITAL_STATUS.map(ms => (<SelectionCard key={ms} label={ms} selected={user.maritalStatus === ms} onClick={() => setUser({...user, maritalStatus: ms})} />))}</div></div>
                   </motion.div>
@@ -332,11 +332,29 @@ export default function App() {
                       <p className="text-[10px] font-black opacity-80 uppercase mb-1">Total Expected Benefit</p>
                       <h2 className="text-2xl font-black">{totalBenefitAmount.toLocaleString()}만원</h2>
                     </div>
-                    <motion.div onClick={() => {setSpecialFilter('자격충족'); setFilter('전체');}} className={cn("p-5 rounded-[1.5rem] border transition-all cursor-pointer flex items-center gap-4", specialFilter === '자격충족' ? "bg-green-500 border-green-500 text-white shadow-lg" : "bg-white border-gray-100 shadow-sm")}>
+                    <motion.div 
+                      onClick={() => {
+                        setSpecialFilter(prev => prev === '자격충족' ? null : '자격충족'); 
+                        setFilter('전체');
+                      }} 
+                      className={cn(
+                        "p-5 rounded-[1.5rem] border transition-all cursor-pointer flex items-center gap-4", 
+                        specialFilter === '자격충족' ? "bg-green-500 border-green-500 text-white shadow-lg" : "bg-white border-gray-100 shadow-sm"
+                      )}
+                    >
                       <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center", specialFilter === '자격충족' ? "bg-white/20" : "bg-green-50 text-green-500")}><CheckCircle2 size={20} /></div>
                       <div><p className="text-[10px] font-black uppercase opacity-70">충족 정책</p><h3 className="text-xl font-black">{processedPolicies.filter(p => p.tag === '자격충족').length}건</h3></div>
                     </motion.div>
-                    <motion.div onClick={() => {setSpecialFilter('마감임박'); setFilter('전체');}} className={cn("p-5 rounded-[1.5rem] border transition-all cursor-pointer flex items-center gap-4", specialFilter === '마감임박' ? "bg-orange-500 border-orange-500 text-white shadow-lg" : "bg-white border-gray-100 shadow-sm")}>
+                    <motion.div 
+                      onClick={() => {
+                        setSpecialFilter(prev => prev === '마감임박' ? null : '마감임박'); 
+                        setFilter('전체');
+                      }} 
+                      className={cn(
+                        "p-5 rounded-[1.5rem] border transition-all cursor-pointer flex items-center gap-4", 
+                        specialFilter === '마감임박' ? "bg-orange-500 border-orange-500 text-white shadow-lg" : "bg-white border-gray-100 shadow-sm"
+                      )}
+                    >
                       <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center", specialFilter === '마감임박' ? "bg-white/20" : "bg-orange-50 text-orange-500")}><Clock size={20} /></div>
                       <div><p className="text-[10px] font-black uppercase opacity-70">마감 임박</p><h3 className="text-xl font-black">{processedPolicies.filter(p => p.dDay.includes('D-') && parseInt(p.dDay.replace('D-', '')) <= 7).length}건</h3></div>
                     </motion.div>
@@ -344,33 +362,35 @@ export default function App() {
 
                   <div className="flex flex-col lg:flex-row gap-8">
                     <div className="flex-1 min-w-0">
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-                        <div className="space-y-1">
-                          <h2 className="text-xl font-black text-gray-900 flex items-center gap-2">
+                      <div className="flex flex-col xl:flex-row xl:items-end justify-between gap-6 mb-8">
+                        <div className="space-y-3">
+                          <h2 className="text-2xl font-black text-gray-900 flex flex-wrap items-center gap-2 leading-tight">
                             {specialFilter ? (specialFilter === '자격충족' ? '✅ 실시간 자격 충족 공고' : '⏰ 마감 직전 공고') : '🎯 오늘의 실제 공고 큐레이션'}
-                            {specialFilter && <button onClick={() => setSpecialFilter(null)} className="text-[10px] bg-gray-100 text-gray-400 px-2 py-0.5 rounded-full hover:text-primary transition-colors">전체보기</button>}
+                            {specialFilter && (
+                              <button onClick={() => setSpecialFilter(null)} className="text-[10px] bg-gray-100 text-gray-400 px-2.5 py-1 rounded-full hover:text-primary hover:bg-primary/5 transition-all font-bold">
+                                전체보기
+                              </button>
+                            )}
                           </h2>
-                          <div className="flex items-center gap-2">
-                            <span className="flex items-center gap-1 text-[9px] font-black text-green-500 bg-green-50 px-1.5 py-0.5 rounded-full border border-green-100">
-                              <span className="w-1 h-1 bg-green-500 rounded-full animate-pulse"></span>
-                              LIVE: LH/SH 실시간 연동중
-                            </span>
-                            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Based on official announcements and your spec</p>
-                          </div>
                         </div>
-                        <div className="flex flex-col sm:flex-row items-center gap-3">
-                          <div className="relative w-full sm:w-64">
+                        
+                        <div className="flex flex-col md:flex-row items-stretch md:items-center gap-4 w-full xl:w-auto">
+                          <div className="relative flex-1 md:w-64">
                             <input 
                               type="text" 
                               placeholder="정책 검색 (예: 청년, 전세)" 
                               value={searchQuery}
                               onChange={(e) => setSearchQuery(e.target.value)}
                               onBlur={() => searchQuery && setSearchHistory(prev => Array.from(new Set([searchQuery, ...prev])).slice(0, 5))}
-                              className="w-full pl-9 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl text-xs font-bold focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+                              className="w-full pl-10 pr-4 py-3 bg-white border border-gray-200 rounded-2xl text-[13px] font-bold focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all placeholder:text-gray-300"
                             />
-                            <Bot size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                            <Bot size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
                           </div>
-                          <div className="flex gap-1.5 overflow-x-auto pb-2 sm:pb-0">{['전체', '대출지원', '월세지원', '공공임대', '공공분양', '전세임대'].map(cat => (<FilterButton key={cat} label={cat} active={filter === cat} onClick={() => setFilter(cat)} />))}</div>
+                          <div className="flex flex-wrap gap-2 min-w-0 max-w-full">
+                            {['전체', '대출지원', '월세지원', '공공임대', '공공분양', '전세임대'].map(cat => (
+                              <FilterButton key={cat} label={cat} active={filter === cat} onClick={() => setFilter(cat)} />
+                            ))}
+                          </div>
                         </div>
                       </div>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
