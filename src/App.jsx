@@ -1,443 +1,26 @@
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  MapPin, Wallet, TrendingUp, ChevronRight, 
-  CheckCircle2, Clock, X, FileText, AlertCircle,
-  Heart, User, Share2,
-  FileCheck, Bot, Users, Activity, Target, ShieldCheck, Download,
-  Bell, BellRing, BarChart3, Fingerprint,
-  MessageCircle, CornerDownRight, Send
+  MapPin, Wallet, TrendingUp, 
+  CheckCircle2, Clock, FileText, 
+  Bot, Activity, BarChart3, FileCheck, Heart, X
 } from 'lucide-react';
-import { clsx } from 'clsx';
-import { twMerge } from 'tailwind-merge';
 import { OCCUPATIONS, MARITAL_STATUS, HOUSING_TYPES } from './constants/options';
 import { SelectionCard } from './components/OnboardingComponents';
 import { POLICIES as MOCK_POLICIES } from './constants/policies';
+import { cn } from './utils/cn';
 
-function cn(...inputs) {
-  return twMerge(clsx(inputs));
-}
+// Components
+import { InputField } from './components/common/InputField';
+import { FilterButton } from './components/common/FilterButton';
+import { PolicyCard } from './components/policy/PolicyCard';
 
-const InputField = ({ label, icon: Icon, type = "text", ...props }) => (
-  <div className="space-y-1.5">
-    <label className="text-xs font-bold text-gray-600 flex items-center gap-1.5">
-      <Icon size={14} className="text-primary" />
-      {label}
-    </label>
-    <input 
-      type={type}
-      {...props}
-      className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all text-sm"
-    />
-  </div>
-);
-
-const FilterButton = ({ label, active, onClick }) => (
-  <button 
-    onClick={onClick}
-    className={cn(
-      "px-3 py-1.5 rounded-xl text-[11px] font-black transition-all whitespace-nowrap border",
-      active ? "bg-primary text-white border-primary shadow-md shadow-primary/20" : "bg-white text-gray-400 border-gray-100 hover:bg-gray-50"
-    )}
-  >
-    {label}
-  </button>
-);
-
-const PolicyCard = ({ policy, onClick, isScrapped, onScrap, isHighlyRecommended }) => (
-  <motion.div 
-    whileHover={{ y: -4 }}
-    onClick={onClick}
-    className={cn(
-      "relative bg-white p-5 rounded-2xl border shadow-sm hover:shadow-md cursor-pointer transition-all flex flex-col h-full",
-      isHighlyRecommended ? "border-primary/40 bg-blue-50/10" : "border-gray-100"
-    )}
-  >
-    {isHighlyRecommended && (
-      <div className="absolute -top-2.5 -right-2 bg-primary text-white text-[10px] font-black px-2.5 py-1 rounded-full shadow-md flex items-center gap-1 uppercase tracking-tighter">
-        <Target size={10} /> 강력추천
-      </div>
-    )}
-    <div className="flex justify-between items-start mb-3">
-      <span className="px-2.5 py-0.5 bg-blue-50 text-primary text-[10px] font-black rounded-md">
-        {policy.category}
-      </span>
-      <div className="flex gap-1.5 items-center">
-        <span className={cn(
-          "text-[10px] font-bold px-1.5 py-0.5 rounded",
-          policy.tag === "자격충족" ? "bg-green-50 text-green-600" : "bg-orange-50 text-orange-600"
-        )}>
-          {policy.tag}
-        </span>
-        <button 
-          onClick={(e) => { e.stopPropagation(); onScrap(policy.id); }}
-          className={cn(
-            "p-1 rounded-full transition-all",
-            isScrapped ? "bg-red-50 text-red-500" : "bg-gray-50 text-gray-400 hover:text-red-400"
-          )}
-        >
-          <Heart size={14} fill={isScrapped ? "currentColor" : "none"} />
-        </button>
-      </div>
-    </div>
-    
-    <div className="flex-1">
-      <h3 className="text-[15px] font-black mb-1.5 text-gray-900 leading-snug tracking-tight break-keep">{policy.title}</h3>
-      <p className="text-xs text-gray-500 mb-4 line-clamp-2 leading-relaxed">{policy.summary}</p>
-    </div>
-
-    <div className="flex justify-between items-center pt-3 border-t border-gray-50 mt-auto">
-      <div className="flex items-center gap-1 text-red-500 font-black text-[11px]">
-        <Clock size={12} />
-        {policy.dDay}
-      </div>
-      <div className="text-primary text-[11px] font-black flex items-center gap-0.5">
-        자세히 보기 <ChevronRight size={14} />
-      </div>
-    </div>
-  </motion.div>
-);
-
-// --- MODALS ---
-
-const AIChatbotModal = ({ onClose }) => {
-  const [messages, setMessages] = useState([
-    { id: 1, type: 'bot', text: '안녕하세요! 둥지탈출 AI 멘토입니다. 주거 정책 서류 준비나 신청 절차 중 궁금한 점이 있으신가요?' }
-  ]);
-  const [input, setInput] = useState('');
-  const [isTyping, setIsTyping] = useState(false);
-  const messagesEndRef = useRef(null);
-
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
-
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages, isTyping]);
-
-  const handleSend = (e) => {
-    e.preventDefault();
-    if (!input.trim()) return;
-
-    const newMsg = { id: Date.now(), type: 'user', text: input };
-    setMessages(prev => [...prev, newMsg]);
-    setInput('');
-    setIsTyping(true);
-
-    // AI Response Simulation
-    setTimeout(() => {
-      setIsTyping(false);
-      setMessages(prev => [...prev, { 
-        id: Date.now() + 1, 
-        type: 'bot', 
-        text: '네, 질문해주신 내용에 대한 답변입니다. 프리랜서의 경우 종합소득세 신고 내역서나 위촉증명서 등 소득을 증빙할 수 있는 서류를 발급받아 제출하시면 됩니다. 마이페이지의 서류 보관함 연동 기능을 활용하시면 더 편리합니다!' 
-      }]);
-    }, 1500);
-  };
-
-  return (
-    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }} className="fixed inset-x-4 bottom-4 md:right-4 md:left-auto md:w-96 h-[500px] z-[80] bg-white rounded-3xl shadow-2xl border border-gray-100 flex flex-col overflow-hidden">
-      {/* Chat Header */}
-      <div className="bg-primary p-4 flex justify-between items-center text-white shrink-0">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center"><Bot size={18} /></div>
-          <div>
-            <h3 className="font-black text-sm">AI 멘토 실시간 상담</h3>
-            <p className="text-[10px] text-primary-100 flex items-center gap-1"><span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse"></span>Online</p>
-          </div>
-        </div>
-        <button onClick={onClose} className="p-2 hover:bg-white/20 rounded-full transition-colors"><X size={18}/></button>
-      </div>
-
-      {/* Chat Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50/50">
-        {messages.map(msg => (
-          <div key={msg.id} className={cn("flex", msg.type === 'user' ? "justify-end" : "justify-start")}>
-            <div className={cn("max-w-[80%] rounded-2xl p-3 text-xs font-medium leading-relaxed shadow-sm", msg.type === 'user' ? "bg-gray-900 text-white rounded-br-sm" : "bg-white border border-gray-100 text-gray-800 rounded-bl-sm")}>
-              {msg.text}
-            </div>
-          </div>
-        ))}
-        {isTyping && (
-          <div className="flex justify-start">
-            <div className="bg-white border border-gray-100 rounded-2xl rounded-bl-sm p-3 shadow-sm flex gap-1">
-              <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce"></span>
-              <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></span>
-              <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></span>
-            </div>
-          </div>
-        )}
-        <div ref={messagesEndRef} />
-      </div>
-
-      {/* Chat Input */}
-      <form onSubmit={handleSend} className="p-3 bg-white border-t border-gray-100 shrink-0">
-        <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-2xl p-1 pr-2">
-          <input 
-            type="text" 
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder="궁금한 점을 물어보세요..." 
-            className="flex-1 bg-transparent px-3 py-2 text-xs outline-none"
-          />
-          <button type="submit" disabled={!input.trim()} className="w-8 h-8 bg-primary text-white rounded-xl flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed hover:bg-primary/90 transition-colors">
-            <Send size={14} className="-ml-0.5" />
-          </button>
-        </div>
-      </form>
-    </motion.div>
-  );
-};
-
-const MentoringModal = ({ onClose, onOpenAI }) => (
-  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={onClose}>
-    <motion.div initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }} className="bg-white w-full max-w-sm rounded-[2rem] p-7 shadow-2xl" onClick={e => e.stopPropagation()}>
-      <div className="flex justify-between items-center mb-5">
-        <h2 className="text-lg font-black flex items-center gap-2 tracking-tight"><Users className="text-primary" size={18}/> 멘토링 신청</h2>
-        <button onClick={onClose} className="p-1.5 bg-gray-100 rounded-full text-gray-400 hover:bg-gray-200"><X size={16} /></button>
-      </div>
-      <p className="text-gray-500 text-[11px] font-bold mb-6 leading-relaxed">정책 전문가와 AI가 님의 상황에 맞는 최적의 신청 전략을 세워드립니다.</p>
-      <div className="space-y-3">
-        <button className="w-full flex items-center gap-3.5 p-4 rounded-2xl border border-primary/20 bg-blue-50/30 hover:bg-blue-50 transition-all text-left group" onClick={() => { onOpenAI(); onClose(); }}>
-          <div className="w-10 h-10 bg-primary text-white rounded-xl flex items-center justify-center shadow-md group-hover:scale-105 transition-transform"><Bot size={20} /></div>
-          <div><h3 className="font-black text-gray-900 text-[13px]">AI 실시간 멘토링</h3><p className="text-[10px] text-gray-400 font-bold">24시간 즉각적인 서류/절차 답변</p></div>
-        </button>
-        <button className="w-full flex items-center gap-3.5 p-4 rounded-2xl border border-gray-100 bg-white hover:bg-gray-50 transition-all text-left group" onClick={() => { alert('실무자 매칭이 요청되었습니다.'); onClose(); }}>
-          <div className="w-10 h-10 bg-gray-800 text-white rounded-xl flex items-center justify-center shadow-md group-hover:scale-105 transition-transform"><User size={20} /></div>
-          <div><h3 className="font-black text-gray-900 text-[13px]">실무자 1:1 상담</h3><p className="text-[10px] text-gray-400 font-bold">복잡한 케이스에 대한 심층 케어</p></div>
-        </button>
-      </div>
-    </motion.div>
-  </motion.div>
-);
-
-const MockApplyModal = ({ policy, onClose, setApplications }) => {
-  const [loading, setLoading] = useState(true);
-  useEffect(() => { setTimeout(() => setLoading(false), 2000); }, []);
-
-  const handleRealApply = () => {
-    setApplications(prev => {
-      if(prev.find(p => p.policyId === policy.id)) return prev;
-      return [...prev, { policyId: policy.id, status: '접수완료', date: new Date().toISOString().split('T')[0] }];
-    });
-    alert('실제 신청이 접수되었습니다! 내 정보 탭에서 현황을 확인하세요.');
-    onClose();
-  };
-
-  if (loading) {
-    return (
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[60] flex flex-col items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-        <Activity size={32} className="text-primary animate-spin mb-4" />
-        <h2 className="text-white text-lg font-black mb-1">알고리즘 모의 진단 중...</h2>
-        <p className="text-white/50 text-[11px] font-bold">과거 합격 데이터와 님의 프로필을 정밀 대조하고 있습니다.</p>
-      </motion.div>
-    );
-  }
-
-  const isHighProb = policy.probability >= 80;
-
-  return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={onClose}>
-      <motion.div initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }} className="bg-white w-full max-w-sm rounded-[2rem] overflow-hidden shadow-2xl" onClick={e => e.stopPropagation()}>
-        <div className={cn("p-7 text-center text-white", isHighProb ? "bg-primary" : "bg-orange-500")}>
-          <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-3">
-            {isHighProb ? <Target size={24} /> : <AlertCircle size={24} />}
-          </div>
-          <h2 className="text-xl font-black mb-1">{isHighProb ? "합격 안정권입니다!" : "보완이 필요해 보여요"}</h2>
-          <p className="text-[10px] font-bold opacity-80">{policy.title}</p>
-        </div>
-        <div className="p-7 space-y-5 bg-gray-50/50">
-          <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm text-center">
-            <p className="text-[10px] text-gray-400 font-black mb-1.5 uppercase tracking-widest">Expected Success Rate</p>
-            <p className={cn("text-4xl font-black", isHighProb ? "text-primary" : "text-orange-500")}>{policy.probability}%</p>
-          </div>
-          
-          {!isHighProb && (
-            <div className="bg-orange-50 p-4 rounded-xl border border-orange-100">
-              <h4 className="font-black text-orange-800 text-[11px] mb-1.5 flex items-center gap-1.5"><ShieldCheck size={14}/> 리바운드 케어 알림</h4>
-              <p className="text-[10px] text-orange-700 font-medium leading-relaxed">소득 조건에서 약간의 차이가 발견되었습니다. 탈락 시 대체 가능한 정책 매칭 리스트를 생성했습니다.</p>
-            </div>
-          )}
-
-          <div className="flex gap-2">
-            <button onClick={onClose} className="flex-1 py-3.5 bg-white border border-gray-200 text-gray-500 font-black rounded-xl text-xs hover:bg-gray-50 transition-all">닫기</button>
-            <button onClick={handleRealApply} className="flex-[1.5] py-3.5 bg-gray-900 text-white font-black rounded-xl text-xs hover:bg-black transition-all shadow-lg">즉시 신청하기</button>
-          </div>
-        </div>
-      </motion.div>
-    </motion.div>
-  );
-};
-
-const EmailAlertModal = ({ policy, onClose }) => (
-  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={onClose}>
-    <motion.div initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }} className="bg-white w-full max-w-sm rounded-3xl p-7 shadow-2xl" onClick={e => e.stopPropagation()}>
-      <div className="text-center">
-        <div className="w-14 h-14 bg-blue-50 text-primary rounded-full flex items-center justify-center mx-auto mb-4">
-          <BellRing size={28} />
-        </div>
-        <h2 className="text-xl font-black mb-2">맞춤 알림 예약</h2>
-        <p className="text-gray-500 text-sm mb-6 font-medium leading-relaxed">
-          <span className="text-primary font-bold">[{policy.title}]</span><br/>
-          공고가 뜨거나 마감이 임박하면<br/>이메일로 실시간 알림을 보내드릴까요?
-        </p>
-        <div className="space-y-3">
-          <button className="w-full py-3.5 bg-primary text-white font-bold rounded-xl shadow-lg shadow-primary/20 hover:brightness-110 transition-all" onClick={() => { alert('알림 예약이 완료되었습니다!'); onClose(); }}>이메일 알림 받기</button>
-          <button className="w-full py-3 text-gray-400 text-xs font-bold hover:text-gray-600 transition-all" onClick={onClose}>나중에 하기</button>
-        </div>
-      </div>
-    </motion.div>
-  </motion.div>
-);
-
-const MainDetailModal = ({ 
-  policy, onClose, isScrapped, onScrap, onOpenMock, onOpenMentoring, 
-  issuedDocs, setIssuedDocs, onOpenAlert 
-}) => {
-  if (!policy) return null;
-  
-  const handleIssueAllDocs = () => {
-    setIssuedDocs(prev => {
-      const newDocs = new Set([...prev, ...policy.documents]);
-      return Array.from(newDocs);
-    });
-    alert('필요한 서류가 모두 발급(연동)되어 서류함에 저장되었습니다.');
-  };
-
-  const openOriginalNotice = () => {
-    if (policy.originalUrl) {
-      window.open(policy.originalUrl, '_blank', 'noopener,noreferrer');
-    } else {
-      alert('상세 공고 링크가 제공되지 않는 정책입니다.');
-    }
-  };
-
-  return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={onClose}>
-      <motion.div initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 20 }} className="bg-white w-full max-w-xl rounded-[2rem] overflow-hidden shadow-2xl flex flex-col max-h-[85vh]" onClick={e => e.stopPropagation()}>
-        
-        {/* Header */}
-        <div className="relative bg-gray-900 p-7 flex-shrink-0 text-white">
-          <div className="absolute top-5 right-6 flex gap-2">
-            <button onClick={onOpenAlert} className="p-2 bg-white/10 hover:bg-white/20 rounded-full transition-colors border border-white/10">
-              <Bell size={18} />
-            </button>
-            <button onClick={() => onScrap(policy.id)} className={cn("p-2 rounded-full transition-colors", isScrapped ? "bg-red-500" : "bg-white/10 hover:bg-white/20 border border-white/10")}>
-              <Heart size={18} fill={isScrapped ? "white" : "none"} />
-            </button>
-            <button onClick={onClose} className="p-2 bg-white/10 hover:bg-white/20 rounded-full transition-colors border border-white/10">
-              <X size={18} />
-            </button>
-          </div>
-          <div className="mt-2">
-            <span className="text-[10px] font-black bg-primary px-2 py-1 rounded mb-2.5 inline-block tracking-tighter">[{policy.category}]</span>
-            <h2 className="text-2xl font-black leading-tight tracking-tight">{policy.title}</h2>
-          </div>
-        </div>
-
-        {/* Content */}
-        <div className="p-7 overflow-y-auto space-y-6 flex-1 bg-gray-50/30">
-          
-          <div className="grid grid-cols-2 gap-3">
-            <button onClick={onOpenMock} className="p-3.5 bg-white border border-primary/20 rounded-xl shadow-sm hover:border-primary transition-all flex flex-col items-center gap-1.5 text-primary">
-              <Activity size={20} />
-              <span className="text-xs font-black">모의 진단 분석</span>
-            </button>
-            <button onClick={onOpenMentoring} className="p-3.5 bg-white border border-gray-200 rounded-xl shadow-sm hover:border-gray-400 transition-all flex flex-col items-center gap-1.5 text-gray-700">
-              <Users size={20} />
-              <span className="text-xs font-black">멘토링 신청</span>
-            </button>
-          </div>
-
-          <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between">
-            <div><h4 className="text-[10px] font-black text-gray-400 uppercase mb-1">지원 혜택</h4><p className="text-lg font-black text-gray-900">{policy.benefit}</p></div>
-            <div className="text-right">
-              <h4 className="text-[10px] font-black text-gray-400 uppercase mb-1">매칭 정확도</h4>
-              <p className="text-lg font-black text-primary">{policy.probability}%</p>
-            </div>
-          </div>
-
-          <div>
-            <h4 className="text-[11px] font-black text-gray-400 mb-2.5 uppercase flex items-center gap-1.5"><Fingerprint size={14}/> 상세 자격 조건 및 연동 발급</h4>
-            <div className="bg-white p-5 rounded-2xl border border-gray-100 space-y-4">
-              <p className="text-xs text-gray-600 leading-relaxed font-medium">{policy.details}</p>
-              <div className="pt-4 border-t border-gray-50">
-                <div className="flex justify-between items-center mb-3">
-                  <h5 className="text-[11px] font-black text-gray-800">연동 필요 서류 ({policy.documents.length})</h5>
-                  <button onClick={handleIssueAllDocs} className="text-[10px] font-black text-primary hover:underline flex items-center gap-1"><Download size={12}/> 원클릭 일괄 발급</button>
-                </div>
-                <div className="grid grid-cols-1 gap-2">
-                  {policy.documents.map((doc, i) => (
-                    <div key={i} className={cn("flex items-center justify-between p-2.5 rounded-lg border text-[11px] font-bold transition-all", issuedDocs.includes(doc) ? "bg-green-50 border-green-100 text-green-700" : "bg-gray-50 border-gray-100 text-gray-400")}>
-                      <span className="flex items-center gap-2"><FileText size={12}/> {doc}</span>
-                      {issuedDocs.includes(doc) ? <CheckCircle2 size={12}/> : <span className="text-[9px] opacity-60">연동전</span>}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="pt-2 border-t border-gray-100">
-            <h4 className="text-[12px] font-black text-gray-900 mb-3 flex items-center gap-1.5">
-              <MessageCircle size={14} className="text-primary" />
-              실제 합격자 찐 후기 & Q&A
-            </h4>
-            
-            <div className="bg-white p-3.5 rounded-2xl border border-gray-100 mb-2">
-              <div className="flex justify-between items-center mb-1.5">
-                <div className="flex items-center gap-1.5">
-                  <span className="bg-green-500 text-white text-[8px] font-black px-1.5 py-0.5 rounded">합격</span>
-                  <span className="text-[11px] font-bold text-gray-900">자취N년차</span>
-                  <span className="text-[9px] text-gray-400">연소득 3,200 · 2일 전</span>
-                </div>
-                <button className="text-[9px] text-gray-400 hover:text-red-500 flex items-center gap-0.5"><Heart size={10}/> 24</button>
-              </div>
-              <p className="text-[10px] text-gray-700 leading-relaxed font-medium">
-                서류가 제일 막막했는데, 여기서 일괄 발급받고 바로 통과했습니다! 꿀팁: 은행 가실 때 꼭 오전에 가세요. 대기 엄청 깁니다 ㅠㅠ
-              </p>
-            </div>
-
-            <div className="bg-white p-3.5 rounded-2xl border border-gray-100 mb-3">
-              <div className="flex justify-between items-center mb-1.5">
-                <div className="flex items-center gap-1.5">
-                  <span className="bg-gray-400 text-white text-[8px] font-black px-1.5 py-0.5 rounded">질문</span>
-                  <span className="text-[11px] font-bold text-gray-900">둥지찾는새</span>
-                  <span className="text-[9px] text-gray-400">프리랜서 · 5시간 전</span>
-                </div>
-                <button className="text-[9px] text-gray-400 hover:text-red-500 flex items-center gap-0.5"><Heart size={10}/> 5</button>
-              </div>
-              <p className="text-[10px] text-gray-700 leading-relaxed font-medium mb-2">
-                프리랜서라서 소득 증빙이 헷갈리는데, 저 같은 분들 어떻게 준비하셨나요?
-              </p>
-              <div className="bg-blue-50/50 p-2 rounded-xl border border-blue-100 flex gap-1.5">
-                <CornerDownRight size={10} className="text-primary mt-0.5 flex-shrink-0" />
-                <div>
-                   <span className="text-[9px] font-black text-primary">AI 멘토봇</span>
-                   <p className="text-[9px] text-gray-600 mt-0.5 font-medium leading-relaxed">프리랜서의 경우 종합소득세 신고 내역서나 위촉증명서가 필요합니다. 상단의 &apos;멘토링 신청&apos;을 이용해 보세요!</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="flex gap-2 mt-2">
-              <input type="text" placeholder="질문이나 팁을 남겨보세요..." className="flex-1 bg-white border border-gray-200 text-[10px] px-3 py-2 rounded-xl outline-none focus:border-primary transition-all font-medium" />
-              <button className="bg-gray-900 text-white px-3 py-2 rounded-xl text-[10px] font-black hover:bg-black transition-colors">등록</button>
-            </div>
-          </div>
-
-        </div>
-
-        <div className="p-5 bg-white border-t border-gray-100 flex gap-2 flex-shrink-0">
-          <button onClick={openOriginalNotice} className="flex-1 py-3.5 bg-gray-100 text-gray-700 text-sm font-black rounded-xl hover:bg-gray-200 transition-all flex items-center justify-center gap-2">
-            <Share2 size={16} /> 원문 공고 보기
-          </button>
-          <button onClick={onOpenMock} className="flex-[1.5] py-3.5 bg-primary text-white text-sm font-black rounded-xl hover:brightness-110 transition-all shadow-lg shadow-primary/20">신청 시작하기</button>
-        </div>
-      </motion.div>
-    </motion.div>
-  );
-};
+// Modals
+import { AIChatbotModal } from './components/modals/AIChatbotModal';
+import { MentoringModal } from './components/modals/MentoringModal';
+import { MockApplyModal } from './components/modals/MockApplyModal';
+import { EmailAlertModal } from './components/modals/EmailAlertModal';
+import { MainDetailModal } from './components/modals/MainDetailModal';
 
 export default function App() {
   const [step, setStep] = useState('auth'); 
@@ -475,32 +58,44 @@ export default function App() {
         const mockJson = await mockRes.json();
         let combinedData = mockJson.success ? mockJson.data : MOCK_POLICIES;
 
-        // Fetch LH Notices
+        // Fetch LH Notices (03: 분양, 06: 임대, 31: 전세임대)
         try {
-          const lhRes = await fetch(`${API_BASE}/api/lh-notices?UPP_AIS_TP_CD=06&PG_SZ=10`);
+          const lhRes = await fetch(`${API_BASE}/api/lh-notices?UPP_AIS_TP_CD=03,06,31&PG_SZ=10`);
           const lhJson = await lhRes.json();
-          if (lhJson.success && lhJson.data && lhJson.data[1]?.dsList) {
-            const mappedLH = lhJson.data[1].dsList.map(item => ({
-              id: item.PAN_ID,
-              title: item.PAN_NM,
-              category: "공공임대",
-              tag: item.PAN_SS === "공고중" ? "자격충족" : "확인필요",
-              summary: item.AIS_TP_CD_NM,
-              dDay: item.CLSG_DT ? `D-${Math.ceil((new Date(item.CLSG_DT.replace(/\./g, '-')) - new Date()) / (1000 * 60 * 60 * 24))}` : '상시',
-              benefit: "시세 대비 저렴한 임대료",
-              benefitAmount: 2000, 
-              probability: 65,
-              details: `${item.CNP_CD_NM} 지역의 ${item.AIS_TP_CD_NM} 공고입니다. 상세 내용은 LH 청약플러스에서 확인하세요.`,
-              documents: ["주민등록등본", "가족관계증명서", "소득금액증명원"],
-              views: Math.floor(Math.random() * 5000),
-              applicants: Math.floor(Math.random() * 1000),
-              minIncome: 0,
-              maxIncome: 4500,
-              regions: [item.CNP_CD_NM],
-              occupations: ["대학생", "취업준비생", "직장인", "청년"],
-              originalUrl: item.DTL_URL
-            }));
-            combinedData = [...combinedData, ...mappedLH];
+          if (lhJson.success && Array.isArray(lhJson.data)) {
+            let allLH = [];
+            lhJson.data.forEach(group => {
+              if (group.data && group.data[1]?.dsList) {
+                const mappedLH = group.data[1].dsList.map(item => {
+                  let category = "공공임대";
+                  if (group.code === '03') category = "공공분양";
+                  if (group.code === '31') category = "전세임대";
+
+                  return {
+                    id: item.PAN_ID,
+                    title: item.PAN_NM,
+                    category: category,
+                    tag: item.PAN_SS === "공고중" ? "자격충족" : "확인필요",
+                    summary: item.AIS_TP_CD_NM,
+                    dDay: item.CLSG_DT ? `D-${Math.ceil((new Date(item.CLSG_DT.replace(/\./g, '-')) - new Date()) / (1000 * 60 * 60 * 24))}` : '상시',
+                    benefit: category === "공공분양" ? "내 집 마련 기회" : "시세 대비 저렴한 임대료",
+                    benefitAmount: category === "공공분양" ? 5000 : 2000, 
+                    probability: category === "공공분양" ? 40 : 65,
+                    details: `${item.CNP_CD_NM} 지역의 ${item.AIS_TP_CD_NM} 공고입니다. 상세 내용은 LH 청약플러스에서 확인하세요.`,
+                    documents: ["주민등록등본", "가족관계증명서", "소득금액증명원"],
+                    views: Math.floor(Math.random() * 5000),
+                    applicants: Math.floor(Math.random() * 1000),
+                    minIncome: 0,
+                    maxIncome: category === "공공분양" ? 8000 : 4500,
+                    regions: [item.CNP_CD_NM],
+                    occupations: ["대학생", "취업준비생", "직장인", "청년"],
+                    originalUrl: item.DTL_URL
+                  };
+                });
+                allLH = [...allLH, ...mappedLH];
+              }
+            });
+            combinedData = [...combinedData, ...allLH];
           }
         } catch (lhErr) {
           console.error("LH API fetch error:", lhErr);
@@ -690,7 +285,7 @@ export default function App() {
                           {specialFilter ? (specialFilter === '자격충족' ? '✅ 자격 충족 리스트' : '⏰ 마감 직전 공고') : '🎯 오늘의 맞춤 추천'}
                           {specialFilter && <button onClick={() => setSpecialFilter(null)} className="text-[10px] bg-gray-100 text-gray-400 px-2 py-0.5 rounded-full hover:text-primary transition-colors">전체보기</button>}
                         </h2>
-                        <div className="flex gap-1.5 overflow-x-auto pb-2 sm:pb-0">{['전체', '대출지원', '월세지원', '공공임대'].map(cat => (<FilterButton key={cat} label={cat} active={filter === cat} onClick={() => setFilter(cat)} />))}</div>
+                        <div className="flex gap-1.5 overflow-x-auto pb-2 sm:pb-0">{['전체', '대출지원', '월세지원', '공공임대', '공공분양', '전세임대'].map(cat => (<FilterButton key={cat} label={cat} active={filter === cat} onClick={() => setFilter(cat)} />))}</div>
                       </div>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {filteredPolicies.map((p, i) => (<PolicyCard key={p.id} policy={p} onClick={() => setSelectedPolicy(p)} isScrapped={savedPolicyIds.includes(p.id)} onScrap={toggleScrap} isHighlyRecommended={i < 2 && !specialFilter && filter === '전체'} />))}
@@ -821,7 +416,7 @@ export default function App() {
       <AnimatePresence>{showAlert && selectedPolicy && <EmailAlertModal policy={selectedPolicy} onClose={() => setShowAlert(false)} />}</AnimatePresence>
       <AnimatePresence>{showMentoring && <MentoringModal onClose={() => setShowMentoring(false)} onOpenAI={() => setShowAIChat(true)} />}</AnimatePresence>
       <AnimatePresence>{showMockApply && selectedPolicy && (<MockApplyModal policy={selectedPolicy} onClose={() => setShowMockApply(false)} setApplications={setApplications} />)}</AnimatePresence>
-      <AnimatePresence>{showAIChat && <AIChatbotModal onClose={() => setShowAIChat(false)} />}</AnimatePresence>
+      <AnimatePresence>{showAIChat && <AIChatbotModal onClose={() => setShowAIChat(false)} userData={user} />}</AnimatePresence>
 
     </div>
   );
