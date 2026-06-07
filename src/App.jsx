@@ -26,7 +26,6 @@ export default function App() {
   const [step, setStep] = useState('auth'); 
   const [view, setView] = useState('main'); 
   const [onboardingSubStep, setOnboardingSubStep] = useState(1);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [user, setUser] = useState({ 
     name: '', email: '', birthdate: '', occupation: '', maritalStatus: '', 
     region: '', income: '', assets: '', housingType: '', homelessPeriod: '' 
@@ -45,6 +44,8 @@ export default function App() {
 
   const [filter, setFilter] = useState('전체');
   const [specialFilter, setSpecialFilter] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchHistory, setSearchHistory] = useState([]);
   
   const [policiesData, setPoliciesData] = useState([]);
 
@@ -112,40 +113,28 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    try {
-      const savedUser = localStorage.getItem('nest-user');
-      const savedScraps = localStorage.getItem('nest-scraps');
-      const savedDocs = localStorage.getItem('nest-docs');
-      const savedApps = localStorage.getItem('nest-apps');
-      if (savedUser) {
-        setUser(JSON.parse(savedUser));
-        setIsLoggedIn(true);
-        setStep('dashboard');
-      }
-      if (savedScraps) setSavedPolicyIds(JSON.parse(savedScraps));
-      if (savedDocs) setIssuedDocs(JSON.parse(savedDocs));
-      if (savedApps) setApplications(JSON.parse(savedApps));
-    } catch { localStorage.clear(); }
+    const savedHistory = localStorage.getItem('nest-search-history');
+    if (savedHistory) setSearchHistory(JSON.parse(savedHistory));
   }, []);
 
   useEffect(() => {
-    if(isLoggedIn) {
-      localStorage.setItem('nest-scraps', JSON.stringify(savedPolicyIds));
-      localStorage.setItem('nest-docs', JSON.stringify(issuedDocs));
-      localStorage.setItem('nest-apps', JSON.stringify(applications));
-    }
-  }, [savedPolicyIds, issuedDocs, applications, isLoggedIn]);
+    localStorage.setItem('nest-search-history', JSON.stringify(searchHistory));
+  }, [searchHistory]);
 
   const processedPolicies = useMemo(() => {
     const userIncome = parseInt(user.income) || 0;
     const userRegion = user.region || '';
     const userOccupation = user.occupation || '';
+    const userBirthYear = user.birthdate ? new Date(user.birthdate).getFullYear() : 1995;
+    const userAgeGroup = Math.floor((2026 - userBirthYear) / 5) * 5; // e.g., 20, 25, 30
 
     const baseData = policiesData.length > 0 ? policiesData : MOCK_POLICIES;
 
     return baseData.map(p => {
       let score = 0;
       let tag = "확인필요";
+      
+      // 1. Basic Criteria (100 points max)
       const incMatch = userIncome >= p.minIncome && userIncome <= p.maxIncome;
       const regMatch = p.regions.includes("전국") || userRegion.includes(p.regions[0]) || (p.regions[0] && userRegion.includes(p.regions[0].substring(0, 2)));
       const occMatch = p.occupations.includes(userOccupation);
@@ -154,36 +143,78 @@ export default function App() {
       if (regMatch) score += 30;
       if (occMatch) score += 30;
 
+      // 2. Peer Popularity (Bonus up to 10 points)
+      // Logic: If policy occupations/regions match common patterns for the age group
+      const isPeerPopular = (userAgeGroup <= 25 && p.occupations.includes("대학생")) || 
+                            (userAgeGroup > 25 && p.occupations.includes("직장인"));
+      if (isPeerPopular) score += 10;
+
+      // 3. Search History Match (Bonus up to 15 points)
+      const matchesSearchHistory = searchHistory.some(keyword => p.title.includes(keyword) || p.summary.includes(keyword));
+      if (matchesSearchHistory) score += 15;
+
+      // 4. Current Search Match (Huge boost for real-time filtering)
+      const matchesCurrentSearch = searchQuery && (p.title.includes(searchQuery) || p.summary.includes(searchQuery));
+
       if (incMatch && regMatch && occMatch) tag = "자격충족";
       else if (incMatch || regMatch) tag = "확인필요";
       else tag = "부적격";
 
+      // Final Score Calculation
       score += (p.views / 10000) * 5;
+
       return { ...p, matchScore: Math.round(score), tag, 
+        isPeerPopular,
+        matchesCurrentSearch,
         why: [
           incMatch ? "소득 충족" : "소득 초과",
           regMatch ? "거주지 일치" : "거주지 다름",
           occMatch ? "직업 일치" : "직업 미달"
         ]
       };
-    }).sort((a, b) => b.matchScore - a.matchScore);
-  }, [user, policiesData]);
+    }).sort((a, b) => {
+      if (searchQuery) {
+        if (a.matchesCurrentSearch && !b.matchesCurrentSearch) return -1;
+        if (!a.matchesCurrentSearch && b.matchesCurrentSearch) return 1;
+      }
+      return b.matchScore - a.matchScore;
+    });
+  }, [user, policiesData, searchHistory, searchQuery]);
 
   const filteredPolicies = useMemo(() => {
     let list = processedPolicies.filter(p => p.tag !== "부적격");
     if (filter !== '전체') list = list.filter(p => p.category === filter);
     if (specialFilter === '자격충족') list = list.filter(p => p.tag === '자격충족');
     else if (specialFilter === '마감임박') list = list.filter(p => p.dDay.includes('D-') && parseInt(p.dDay.replace('D-', '')) <= 7);
+    
+    if (searchQuery) {
+      list = list.filter(p => p.title.includes(searchQuery) || p.summary.includes(searchQuery) || p.category.includes(searchQuery));
+    }
     return list;
-  }, [processedPolicies, filter, specialFilter]);
+  }, [processedPolicies, filter, specialFilter, searchQuery]);
+
+  const reportScore = useMemo(() => {
+    const topPolicies = processedPolicies.slice(0, 3);
+    if (topPolicies.length === 0) return 0;
+    const avg = topPolicies.reduce((acc, p) => acc + p.matchScore, 0) / topPolicies.length;
+    return Math.min(Math.round(avg), 100);
+  }, [processedPolicies]);
 
   const totalBenefitAmount = useMemo(() => processedPolicies.filter(p => p.tag === "자격충족").reduce((acc, curr) => acc + curr.benefitAmount, 0), [processedPolicies]);
   const appliedPolicies = useMemo(() => applications.map(app => ({...processedPolicies.find(po => po.id === app.policyId), appStatus: app.status, applyDate: app.date})).filter(p => p.id), [applications, processedPolicies]);
   const savedPolicies = useMemo(() => processedPolicies.filter(p => savedPolicyIds.includes(p.id)), [processedPolicies, savedPolicyIds]);
 
+  useEffect(() => {
+    if(step !== 'auth') {
+      localStorage.setItem('nest-scraps', JSON.stringify(savedPolicyIds));
+      localStorage.setItem('nest-docs', JSON.stringify(issuedDocs));
+      localStorage.setItem('nest-apps', JSON.stringify(applications));
+    }
+  }, [savedPolicyIds, issuedDocs, applications, step]);
+
   // Handlers
   const handleStart = (e) => { e.preventDefault(); localStorage.setItem('nest-user', JSON.stringify(user)); setStep('loading'); setTimeout(() => setStep('dashboard'), 2500); };
-  const handleLogout = () => { localStorage.clear(); setIsLoggedIn(false); setStep('auth'); setOnboardingSubStep(1); setView('main'); };
+  const handleLogout = () => { localStorage.clear(); setStep('auth'); setOnboardingSubStep(1); setView('main'); };
   const toggleScrap = (id) => setSavedPolicyIds(prev => prev.includes(id) ? prev.filter(sid => sid !== id) : [...prev, id]);
 
   return (
@@ -194,7 +225,8 @@ export default function App() {
           <motion.div key="auth" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col items-center justify-center min-h-screen p-6">
             <div className="w-full max-w-sm bg-white p-8 rounded-[2rem] shadow-xl border border-gray-100">
               <div className="text-center mb-8"><div className="text-3xl mb-3">🐥</div><h1 className="text-2xl font-black text-gray-900 mb-1.5">둥지탈출</h1><p className="text-gray-400 text-xs font-bold uppercase tracking-widest">Premium Housing Curation</p></div>
-              <form onSubmit={(e) => { e.preventDefault(); setIsLoggedIn(true); setStep('onboarding'); }} className="space-y-5">
+              <form onSubmit={(e) => { e.preventDefault(); setStep('onboarding'); }} className="space-y-5">
+
                 <InputField label="이름(닉네임)" icon={CheckCircle2} placeholder="실명 입력" required value={user.name} onChange={e => setUser({...user, name: e.target.value})} />
                 <InputField label="이메일" icon={FileText} placeholder="example@email.com" type="email" required value={user.email} onChange={e => setUser({...user, email: e.target.value})} />
                 <button type="submit" className="w-full py-4 bg-primary text-white font-black rounded-2xl shadow-lg shadow-primary/20 hover:scale-[1.01] transition-all text-sm">무료 진단 시작하기</button>
@@ -281,14 +313,36 @@ export default function App() {
                   <div className="flex flex-col lg:flex-row gap-8">
                     <div className="flex-1 min-w-0">
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-                        <h2 className="text-xl font-black text-gray-900 flex items-center gap-2">
-                          {specialFilter ? (specialFilter === '자격충족' ? '✅ 자격 충족 리스트' : '⏰ 마감 직전 공고') : '🎯 오늘의 맞춤 추천'}
-                          {specialFilter && <button onClick={() => setSpecialFilter(null)} className="text-[10px] bg-gray-100 text-gray-400 px-2 py-0.5 rounded-full hover:text-primary transition-colors">전체보기</button>}
-                        </h2>
-                        <div className="flex gap-1.5 overflow-x-auto pb-2 sm:pb-0">{['전체', '대출지원', '월세지원', '공공임대', '공공분양', '전세임대'].map(cat => (<FilterButton key={cat} label={cat} active={filter === cat} onClick={() => setFilter(cat)} />))}</div>
+                        <div className="space-y-1">
+                          <h2 className="text-xl font-black text-gray-900 flex items-center gap-2">
+                            {specialFilter ? (specialFilter === '자격충족' ? '✅ 자격 충족 리스트' : '⏰ 마감 직전 공고') : '🎯 오늘의 맞춤 추천'}
+                            {specialFilter && <button onClick={() => setSpecialFilter(null)} className="text-[10px] bg-gray-100 text-gray-400 px-2 py-0.5 rounded-full hover:text-primary transition-colors">전체보기</button>}
+                          </h2>
+                          <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Based on your spec and recent interests</p>
+                        </div>
+                        <div className="flex flex-col sm:flex-row items-center gap-3">
+                          <div className="relative w-full sm:w-64">
+                            <input 
+                              type="text" 
+                              placeholder="정책 검색 (예: 청년, 전세)" 
+                              value={searchQuery}
+                              onChange={(e) => setSearchQuery(e.target.value)}
+                              onBlur={() => searchQuery && setSearchHistory(prev => Array.from(new Set([searchQuery, ...prev])).slice(0, 5))}
+                              className="w-full pl-9 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl text-xs font-bold focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+                            />
+                            <Bot size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                          </div>
+                          <div className="flex gap-1.5 overflow-x-auto pb-2 sm:pb-0">{['전체', '대출지원', '월세지원', '공공임대', '공공분양', '전세임대'].map(cat => (<FilterButton key={cat} label={cat} active={filter === cat} onClick={() => setFilter(cat)} />))}</div>
+                        </div>
                       </div>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {filteredPolicies.map((p, i) => (<PolicyCard key={p.id} policy={p} onClick={() => setSelectedPolicy(p)} isScrapped={savedPolicyIds.includes(p.id)} onScrap={toggleScrap} isHighlyRecommended={i < 2 && !specialFilter && filter === '전체'} />))}
+                        {filteredPolicies.length > 0 ? filteredPolicies.map((p, i) => (<PolicyCard key={p.id} policy={p} onClick={() => setSelectedPolicy(p)} isScrapped={savedPolicyIds.includes(p.id)} onScrap={toggleScrap} isHighlyRecommended={i < 2 && !specialFilter && filter === '전체'} />)) : (
+                          <div className="col-span-full py-20 text-center bg-white rounded-[2rem] border border-dashed border-gray-200">
+                            <Bot size={40} className="mx-auto text-gray-200 mb-4" />
+                            <p className="text-gray-400 font-black text-sm">검색 결과가 없습니다.</p>
+                            <button onClick={() => setSearchQuery('')} className="mt-4 text-xs font-black text-primary underline">초기화</button>
+                          </div>
+                        )}
                       </div>
                     </div>
                     
@@ -333,9 +387,16 @@ export default function App() {
                         <div className="space-y-3">
                           <div className="bg-white/5 p-3 rounded-xl">
                             <p className="text-[9px] text-gray-400 font-bold mb-1">나의 주거 매칭 지수</p>
-                            <div className="flex items-end gap-1"><span className="text-2xl font-black text-white">82.5</span><span className="text-[10px] text-gray-400 mb-1.5">/100</span></div>
+                            <div className="flex items-end gap-1"><span className="text-2xl font-black text-white">{reportScore}</span><span className="text-[10px] text-gray-400 mb-1.5">/100</span></div>
                           </div>
-                          <p className="text-[10px] text-gray-400 leading-relaxed">님의 소득과 거주지 조건을 분석한 결과, <span className="text-white font-bold">대출 지원</span> 분야에서 가장 높은 혜택이 예상됩니다.</p>
+                          <p className="text-[10px] text-gray-400 leading-relaxed">님의 소득과 거주지 조건을 분석한 결과, <span className="text-white font-bold">{processedPolicies[0]?.category}</span> 분야에서 가장 높은 혜택이 예상됩니다.</p>
+                          <div className="pt-2 border-t border-white/10 space-y-2">
+                            <p className="text-[9px] font-black text-primary uppercase">Score Up Tips</p>
+                            <ul className="text-[9px] text-gray-400 space-y-1">
+                              <li>• 거주 희망 지역을 &apos;전국&apos;으로 확장해 보세요.</li>
+                              <li>• 더 많은 정책을 검색할수록 큐레이션이 정확해집니다.</li>
+                            </ul>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -345,7 +406,7 @@ export default function App() {
                         <h2 className="text-lg font-black mb-5 flex items-center gap-2"><Activity size={18} className="text-primary"/> 실시간 심사 현황 트래커 (포트폴리오)</h2>
                         <div className="space-y-3">
                           {appliedPolicies.length > 0 ? appliedPolicies.map((app, i) => (
-                            <div key={i} className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-gray-100">
+                            <div key={i} onClick={() => setSelectedPolicy(app)} className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-gray-100 cursor-pointer hover:bg-gray-100 transition-all">
                               <div><h3 className="font-black text-sm text-gray-900">{app.title}</h3><p className="text-[10px] text-gray-400 font-bold flex items-center gap-1 mt-0.5"><Clock size={10}/> 신청일: {app.applyDate}</p></div>
                               <div className="px-3 py-1 bg-white rounded-lg border border-gray-200 font-black text-[10px] text-gray-700 shadow-sm flex items-center gap-1.5"><div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse"></div>{app.appStatus}</div>
                             </div>
@@ -363,7 +424,7 @@ export default function App() {
                         <section className="bg-white p-7 rounded-[2rem] border border-gray-100 shadow-sm">
                           <h2 className="text-sm font-black mb-4 flex items-center gap-2 text-red-500"><Heart size={16} fill="currentColor"/> 관심 정책 ({savedPolicyIds.length})</h2>
                           <div className="space-y-2">
-                            {savedPolicies.slice(0, 3).map(p => (<div key={p.id} className="text-[11px] font-bold text-gray-600 truncate border-b border-gray-50 pb-2">{p.title}</div>))}
+                            {savedPolicies.slice(0, 3).map(p => (<div key={p.id} onClick={() => setSelectedPolicy(p)} className="text-[11px] font-bold text-gray-600 truncate border-b border-gray-50 pb-2 cursor-pointer hover:text-primary transition-colors">{p.title}</div>))}
                             {savedPolicies.length > 3 && <p className="text-[9px] text-gray-400 text-center pt-1">+ {savedPolicyIds.length - 3}개 더보기</p>}
                             {savedPolicies.length === 0 && <p className="text-gray-400 text-[10px] font-bold">관심 정책이 없습니다.</p>}
                           </div>
@@ -409,6 +470,7 @@ export default function App() {
             onOpenAlert={() => setShowAlert(true)}
             issuedDocs={issuedDocs}
             setIssuedDocs={setIssuedDocs}
+            userData={user}
           />
         )}
       </AnimatePresence>

@@ -16,7 +16,8 @@ export const POLICIES = [
     minIncome: 0,
     maxIncome: 5000,
     regions: ["전국"],
-    occupations: ["대학생", "취업준비생", "직장인", "자영업자"]
+    occupations: ["대학생", "취업준비생", "직장인", "자영업자"],
+    originalUrl: "https://apply.lh.or.kr"
   },
   {
     id: 2,
@@ -35,7 +36,8 @@ export const POLICIES = [
     minIncome: 0,
     maxIncome: 2400,
     regions: ["전국"],
-    occupations: ["대학생", "취업준비생", "직장인", "자영업자", "기타"]
+    occupations: ["대학생", "취업준비생", "직장인", "자영업자", "기타"],
+    originalUrl: "https://www.myhome.go.kr"
   },
   {
     id: 3,
@@ -54,7 +56,8 @@ export const POLICIES = [
     minIncome: 0,
     maxIncome: 4500,
     regions: ["서울", "경기", "인천"],
-    occupations: ["대학생", "취업준비생"]
+    occupations: ["대학생", "취업준비생"],
+    originalUrl: "https://apply.lh.or.kr"
   },
   {
     id: 4,
@@ -73,7 +76,8 @@ export const POLICIES = [
     minIncome: 0,
     maxIncome: 7500,
     regions: ["전국"],
-    occupations: ["직장인", "자영업자"]
+    occupations: ["직장인", "자영업자"],
+    originalUrl: "https://ylaccount.kinfa.or.kr"
   },
   {
     id: 5,
@@ -92,7 +96,8 @@ export const POLICIES = [
     minIncome: 0,
     maxIncome: 5000,
     regions: ["전국"],
-    occupations: ["직장인", "자영업자", "기타"]
+    occupations: ["직장인", "자영업자", "기타"],
+    originalUrl: "https://nhuf.molit.go.kr"
   },
   {
     id: 6,
@@ -111,7 +116,8 @@ export const POLICIES = [
     minIncome: 0,
     maxIncome: 4000,
     regions: ["서울"],
-    occupations: ["직장인", "취업준비생"]
+    occupations: ["직장인", "취업준비생"],
+    originalUrl: "https://youth.seoul.go.kr"
   },
   {
     id: 7,
@@ -130,7 +136,8 @@ export const POLICIES = [
     minIncome: 0,
     maxIncome: 99999,
     regions: ["경기"],
-    occupations: ["대학생", "취업준비생", "직장인", "자영업자", "기타"]
+    occupations: ["대학생", "취업준비생", "직장인", "자영업자", "기타"],
+    originalUrl: "https://apply.jobaba.net"
   },
   {
     id: 8,
@@ -149,7 +156,8 @@ export const POLICIES = [
     minIncome: 0,
     maxIncome: 6000,
     regions: ["전국"],
-    occupations: ["대학생", "취업준비생", "직장인", "자영업자", "기타"]
+    occupations: ["대학생", "취업준비생", "직장인", "자영업자", "기타"],
+    originalUrl: "https://apply.lh.or.kr"
   },
   {
     id: 9,
@@ -168,7 +176,8 @@ export const POLICIES = [
     minIncome: 0,
     maxIncome: 3600,
     regions: ["전국"],
-    occupations: ["대학생", "취업준비생", "직장인", "자영업자", "기타"]
+    occupations: ["대학생", "취업준비생", "직장인", "자영업자", "기타"],
+    originalUrl: "https://nhuf.molit.go.kr"
   },
   {
     id: 10,
@@ -187,6 +196,7 @@ export const POLICIES = [
     minIncome: 0,
     maxIncome: 6000,
     regions: ["전국"],
-    occupations: ["직장인", "자영업자"]
+    occupations: ["직장인", "자영업자"],
+    originalUrl: "https://nhuf.molit.go.kr"
   }
 ];
