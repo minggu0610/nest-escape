@@ -21,6 +21,7 @@ import { MentoringModal } from './components/modals/MentoringModal';
 import { MockApplyModal } from './components/modals/MockApplyModal';
 import { EmailAlertModal } from './components/modals/EmailAlertModal';
 import { MainDetailModal } from './components/modals/MainDetailModal';
+import { DocumentViewerModal } from './components/modals/DocumentViewerModal';
 
 export default function App() {
   const [step, setStep] = useState('auth'); 
@@ -41,6 +42,7 @@ export default function App() {
   const [showMentoring, setShowMentoring] = useState(false);
   const [showAlert, setShowAlert] = useState(false);
   const [showAIChat, setShowAIChat] = useState(false);
+  const [viewingDocMyPage, setViewingDocMyPage] = useState(null);
 
   const [filter, setFilter] = useState('전체');
   const [specialFilter, setSpecialFilter] = useState(null);
@@ -195,9 +197,25 @@ export default function App() {
 
   const reportScore = useMemo(() => {
     const topPolicies = processedPolicies.slice(0, 3);
-    if (topPolicies.length === 0) return 0;
-    const avg = topPolicies.reduce((acc, p) => acc + p.matchScore, 0) / topPolicies.length;
-    return Math.min(Math.round(avg), 100);
+    if (topPolicies.length === 0) return { total: 0, breakdown: { income: 0, region: 0, occupation: 0 } };
+    
+    const avgTotal = topPolicies.reduce((acc, p) => acc + p.matchScore, 0) / topPolicies.length;
+    
+    const breakdownSum = topPolicies.reduce((acc, p) => {
+      acc.income += p.why?.[0]?.includes('충족') ? 40 : 10;
+      acc.region += p.why?.[1]?.includes('일치') ? 30 : 10;
+      acc.occupation += p.why?.[2]?.includes('일치') ? 30 : 10;
+      return acc;
+    }, { income: 0, region: 0, occupation: 0 });
+
+    return { 
+      total: Math.min(Math.round(avgTotal), 100),
+      breakdown: {
+        income: Math.round(breakdownSum.income / 3),
+        region: Math.round(breakdownSum.region / 3),
+        occupation: Math.round(breakdownSum.occupation / 3)
+      }
+    };
   }, [processedPolicies]);
 
   const totalBenefitAmount = useMemo(() => processedPolicies.filter(p => p.tag === "자격충족").reduce((acc, curr) => acc + curr.benefitAmount, 0), [processedPolicies]);
@@ -384,10 +402,34 @@ export default function App() {
                       {/* Point 7: Curation Insight Report */}
                       <div className="bg-gradient-to-br from-gray-900 to-gray-800 p-6 rounded-[2rem] text-white shadow-xl">
                         <h4 className="text-[10px] font-black text-primary uppercase mb-3 flex items-center gap-1.5"><BarChart3 size={12}/> 알고리즘 추천 리포트</h4>
-                        <div className="space-y-3">
-                          <div className="bg-white/5 p-3 rounded-xl">
+                        <div className="space-y-4">
+                          <div className="bg-white/5 p-4 rounded-2xl">
                             <p className="text-[9px] text-gray-400 font-bold mb-1">나의 주거 매칭 지수</p>
-                            <div className="flex items-end gap-1"><span className="text-2xl font-black text-white">{reportScore}</span><span className="text-[10px] text-gray-400 mb-1.5">/100</span></div>
+                            <div className="flex items-end gap-1 mb-3"><span className="text-3xl font-black text-white">{reportScore.total}</span><span className="text-[10px] text-gray-400 mb-1.5">/100</span></div>
+                            
+                            <div className="space-y-2">
+                              <div className="flex justify-between items-center text-[9px] font-bold">
+                                <span className="text-gray-400">소득 적합도</span>
+                                <span className="text-primary">{reportScore.breakdown.income} / 40</span>
+                              </div>
+                              <div className="h-1 bg-white/10 rounded-full overflow-hidden">
+                                <div className="h-full bg-primary rounded-full transition-all duration-1000" style={{ width: `${(reportScore.breakdown.income / 40) * 100}%` }} />
+                              </div>
+                              <div className="flex justify-between items-center text-[9px] font-bold">
+                                <span className="text-gray-400">거주지 일치</span>
+                                <span className="text-primary">{reportScore.breakdown.region} / 30</span>
+                              </div>
+                              <div className="h-1 bg-white/10 rounded-full overflow-hidden">
+                                <div className="h-full bg-blue-400 rounded-full transition-all duration-1000" style={{ width: `${(reportScore.breakdown.region / 30) * 100}%` }} />
+                              </div>
+                              <div className="flex justify-between items-center text-[9px] font-bold">
+                                <span className="text-gray-400">직업군 매칭</span>
+                                <span className="text-primary">{reportScore.breakdown.occupation} / 30</span>
+                              </div>
+                              <div className="h-1 bg-white/10 rounded-full overflow-hidden">
+                                <div className="h-full bg-green-400 rounded-full transition-all duration-1000" style={{ width: `${(reportScore.breakdown.occupation / 30) * 100}%` }} />
+                              </div>
+                            </div>
                           </div>
                           <p className="text-[10px] text-gray-400 leading-relaxed">님의 소득과 거주지 조건을 분석한 결과, <span className="text-white font-bold">{processedPolicies[0]?.category}</span> 분야에서 가장 높은 혜택이 예상됩니다.</p>
                           <div className="pt-2 border-t border-white/10 space-y-2">
@@ -418,7 +460,15 @@ export default function App() {
                         <section className="bg-white p-7 rounded-[2rem] border border-gray-100 shadow-sm">
                           <h2 className="text-sm font-black mb-4 flex items-center gap-2"><FileCheck size={16} className="text-green-500"/> 내 서류 보관함</h2>
                           <div className="flex flex-wrap gap-2">
-                            {issuedDocs.length > 0 ? issuedDocs.map((doc, i) => (<div key={i} className="px-3 py-2 bg-green-50 text-green-700 text-[10px] font-black rounded-lg border border-green-100 flex items-center gap-1.5"><FileText size={12}/>{doc}</div>)) : (<p className="text-gray-400 text-[10px] font-bold">발급된 서류가 없습니다.</p>)}
+                            {issuedDocs.length > 0 ? issuedDocs.map((doc, i) => (
+                              <button 
+                                key={i} 
+                                onClick={() => setViewingDocMyPage(doc)}
+                                className="px-3 py-2 bg-green-50 text-green-700 text-[10px] font-black rounded-lg border border-green-100 flex items-center gap-1.5 hover:bg-green-100 transition-all shadow-sm"
+                              >
+                                <FileText size={12}/>{doc}
+                              </button>
+                            )) : (<p className="text-gray-400 text-[10px] font-bold">발급된 서류가 없습니다.</p>)}
                           </div>
                         </section>
                         <section className="bg-white p-7 rounded-[2rem] border border-gray-100 shadow-sm">
@@ -479,6 +529,15 @@ export default function App() {
       <AnimatePresence>{showMentoring && <MentoringModal onClose={() => setShowMentoring(false)} onOpenAI={() => setShowAIChat(true)} />}</AnimatePresence>
       <AnimatePresence>{showMockApply && selectedPolicy && (<MockApplyModal policy={selectedPolicy} onClose={() => setShowMockApply(false)} setApplications={setApplications} />)}</AnimatePresence>
       <AnimatePresence>{showAIChat && <AIChatbotModal onClose={() => setShowAIChat(false)} userData={user} />}</AnimatePresence>
+      <AnimatePresence>
+        {viewingDocMyPage && (
+          <DocumentViewerModal 
+            docName={viewingDocMyPage} 
+            userData={user} 
+            onClose={() => setViewingDocMyPage(null)} 
+          />
+        )}
+      </AnimatePresence>
 
     </div>
   );
