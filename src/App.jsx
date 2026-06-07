@@ -3,7 +3,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   MapPin, Wallet, TrendingUp, 
   CheckCircle2, Clock, FileText, 
-  Bot, Activity, BarChart3, FileCheck, Heart, X
+  Bot, Activity, BarChart3, FileCheck, Heart, X,
+  Users, Target, Navigation, Fingerprint
 } from 'lucide-react';
 import { OCCUPATIONS, MARITAL_STATUS, HOUSING_TYPES } from './constants/options';
 import { SelectionCard } from './components/OnboardingComponents';
@@ -222,6 +223,11 @@ export default function App() {
   const appliedPolicies = useMemo(() => applications.map(app => ({...processedPolicies.find(po => po.id === app.policyId), appStatus: app.status, applyDate: app.date})).filter(p => p.id), [applications, processedPolicies]);
   const savedPolicies = useMemo(() => processedPolicies.filter(p => savedPolicyIds.includes(p.id)), [processedPolicies, savedPolicyIds]);
 
+  // Algorithmic Rankings for Sidebar
+  const peerTopPicks = useMemo(() => processedPolicies.filter(p => p.isPeerPopular).sort((a,b) => b.applicants - a.applicants).slice(0, 3), [processedPolicies]);
+  const regionalHotspots = useMemo(() => processedPolicies.filter(p => p.why?.[1]?.includes('일치')).sort((a,b) => b.views - a.views).slice(0, 3), [processedPolicies]);
+  const keywordRecommendations = useMemo(() => processedPolicies.filter(p => searchHistory.some(kw => p.title.includes(kw) || p.summary.includes(kw))).sort((a,b) => b.matchScore - a.matchScore).slice(0, 3), [processedPolicies, searchHistory]);
+
   useEffect(() => {
     if(step !== 'auth') {
       localStorage.setItem('nest-scraps', JSON.stringify(savedPolicyIds));
@@ -366,7 +372,7 @@ export default function App() {
                     
                     <aside className="lg:w-72 space-y-6">
                       <div className="bg-white p-6 rounded-[1.5rem] border border-gray-100 shadow-sm">
-                        <h2 className="text-sm font-black text-gray-900 mb-5 flex items-center gap-2 border-b border-gray-50 pb-3"><Activity size={16} className="text-primary" />급상승 인기 랭킹</h2>
+                        <h2 className="text-[12px] font-black text-gray-900 mb-5 flex items-center gap-2 border-b border-gray-50 pb-3"><Activity size={16} className="text-primary" />급상승 인기 랭킹</h2>
                         <div className="space-y-4">{processedPolicies.slice(0, 5).sort((a,b) => b.views - a.views).map((p, i) => (
                           <div key={p.id} onClick={() => setSelectedPolicy(p)} className="flex items-center gap-3 cursor-pointer group">
                             <div className={cn("w-7 h-7 flex-shrink-0 rounded-lg flex items-center justify-center text-xs font-black transition-colors", i < 3 ? "bg-gray-900 text-white" : "bg-gray-100 text-gray-400")}>{i+1}</div>
@@ -374,6 +380,44 @@ export default function App() {
                           </div>
                         ))}</div>
                       </div>
+
+                      <div className="bg-white p-6 rounded-[1.5rem] border border-gray-100 shadow-sm">
+                        <h2 className="text-[12px] font-black text-gray-900 mb-5 flex items-center gap-2 border-b border-gray-50 pb-3"><Users size={16} className="text-blue-500" />내 또래 Top Pick!</h2>
+                        <div className="space-y-4">{peerTopPicks.length > 0 ? peerTopPicks.map((p) => (
+                          <div key={p.id} onClick={() => setSelectedPolicy(p)} className="flex items-center gap-3 cursor-pointer group">
+                            <div className="w-7 h-7 flex-shrink-0 rounded-lg bg-blue-50 flex items-center justify-center text-[10px] font-black text-blue-500">PICK</div>
+                            <div className="min-w-0 flex-1">
+                              <h3 className="text-[11px] font-bold text-gray-600 group-hover:text-primary truncate transition-colors">{p.title}</h3>
+                              <p className="text-[9px] text-gray-400 font-bold">{p.applicants.toLocaleString()}명 신청중</p>
+                            </div>
+                          </div>
+                        )) : (<p className="text-[10px] text-gray-400 font-bold text-center py-2">데이터 수집중...</p>)}</div>
+                      </div>
+
+                      {regionalHotspots.length > 0 && (
+                        <div className="bg-white p-6 rounded-[1.5rem] border border-gray-100 shadow-sm">
+                          <h2 className="text-[12px] font-black text-gray-900 mb-5 flex items-center gap-2 border-b border-gray-50 pb-3"><Navigation size={16} className="text-orange-500" />우리 동네 핫한 공고</h2>
+                          <div className="space-y-4">{regionalHotspots.map((p) => (
+                            <div key={p.id} onClick={() => setSelectedPolicy(p)} className="flex items-center gap-3 cursor-pointer group">
+                              <div className="w-7 h-7 flex-shrink-0 rounded-lg bg-orange-50 flex items-center justify-center text-[10px] font-black text-orange-500"><MapPin size={12}/></div>
+                              <h3 className="text-[11px] font-bold text-gray-600 group-hover:text-primary truncate transition-colors">{p.title}</h3>
+                            </div>
+                          ))}</div>
+                        </div>
+                      )}
+
+                      {keywordRecommendations.length > 0 && (
+                        <div className="bg-white p-6 rounded-[1.5rem] border border-gray-100 shadow-sm">
+                          <h2 className="text-[12px] font-black text-gray-900 mb-5 flex items-center gap-2 border-b border-gray-50 pb-3"><Target size={16} className="text-green-500" />관심 키워드 분석 추천</h2>
+                          <div className="space-y-4">{keywordRecommendations.map((p) => (
+                            <div key={p.id} onClick={() => setSelectedPolicy(p)} className="flex items-center gap-3 cursor-pointer group">
+                              <div className="w-7 h-7 flex-shrink-0 rounded-lg bg-green-50 flex items-center justify-center text-[10px] font-black text-green-500"><Fingerprint size={12}/></div>
+                              <h3 className="text-[11px] font-bold text-gray-600 group-hover:text-primary truncate transition-colors">{p.title}</h3>
+                            </div>
+                          ))}</div>
+                        </div>
+                      )}
+
                       <button onClick={() => setShowMentoring(true)} className="w-full bg-blue-600 text-white p-5 rounded-[1.5rem] shadow-lg shadow-blue-200 flex flex-col items-center gap-2 hover:scale-[1.02] transition-all">
                         <Bot size={24}/><span className="text-xs font-black">AI & 전문가 멘토링 신청</span>
                       </button>
