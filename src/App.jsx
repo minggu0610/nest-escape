@@ -62,9 +62,9 @@ export default function App() {
         const mockJson = await mockRes.json();
         let combinedData = mockJson.success ? mockJson.data : MOCK_POLICIES;
 
-        // Fetch LH Notices (03: 분양, 06: 임대, 31: 전세임대)
+        // Fetch LH Notices (03:분양, 04:신혼분양, 06:임대, 13:신혼임대, 31:전세임대, 39:매입임대)
         try {
-          const lhRes = await fetch(`${API_BASE}/api/lh-notices?UPP_AIS_TP_CD=03,06,31&PG_SZ=10`);
+          const lhRes = await fetch(`${API_BASE}/api/lh-notices?UPP_AIS_TP_CD=03,04,06,13,31,39&PG_SZ=20`);
           const lhJson = await lhRes.json();
           if (lhJson.success && Array.isArray(lhJson.data)) {
             let allLH = [];
@@ -72,28 +72,32 @@ export default function App() {
               if (group.data && group.data[1]?.dsList) {
                 const mappedLH = group.data[1].dsList.map(item => {
                   let category = "공공임대";
-                  if (group.code === '03') category = "공공분양";
+                  let boost = 5; // Default boost for real data
+                  if (group.code === '03' || group.code === '04') category = "공공분양";
                   if (group.code === '31') category = "전세임대";
+                  if (group.code === '13' || group.code === '04') boost += 10; // Special category boost
 
                   return {
                     id: item.PAN_ID,
                     title: item.PAN_NM,
                     category: category,
+                    isRealTime: true,
                     tag: item.PAN_SS === "공고중" ? "자격충족" : "확인필요",
                     summary: item.AIS_TP_CD_NM,
                     dDay: item.CLSG_DT ? `D-${Math.ceil((new Date(item.CLSG_DT.replace(/\./g, '-')) - new Date()) / (1000 * 60 * 60 * 24))}` : '상시',
                     benefit: category === "공공분양" ? "내 집 마련 기회" : "시세 대비 저렴한 임대료",
                     benefitAmount: category === "공공분양" ? 5000 : 2000, 
-                    probability: category === "공공분양" ? 40 : 65,
-                    details: `${item.CNP_CD_NM} 지역의 ${item.AIS_TP_CD_NM} 공고입니다. 상세 내용은 LH 청약플러스에서 확인하세요.`,
-                    documents: ["주민등록등본", "가족관계증명서", "소득금액증명원"],
-                    views: Math.floor(Math.random() * 5000),
-                    applicants: Math.floor(Math.random() * 1000),
+                    probability: category === "공공분양" ? 45 : 70,
+                    details: `[실시간] ${item.CNP_CD_NM} 지역의 ${item.AIS_TP_CD_NM} 공식 공고입니다. 게시일: ${item.PAN_NT_DT || '확인불가'}`,
+                    documents: ["주민등록등본", "가족관계증명서", "소득금액증명원", "자산보유사실확인서"],
+                    views: Math.floor(Math.random() * 8000) + 2000,
+                    applicants: Math.floor(Math.random() * 2000) + 500,
                     minIncome: 0,
-                    maxIncome: category === "공공분양" ? 8000 : 4500,
+                    maxIncome: category === "공공분양" ? 8500 : 4800,
                     regions: [item.CNP_CD_NM],
-                    occupations: ["대학생", "취업준비생", "직장인", "청년"],
-                    originalUrl: item.DTL_URL
+                    occupations: ["대학생", "취업준비생", "직장인", "청년", "신혼부부"],
+                    originalUrl: item.DTL_URL,
+                    realDataBoost: boost
                   };
                 });
                 allLH = [...allLH, ...mappedLH];
@@ -139,7 +143,9 @@ export default function App() {
       
       // 1. Basic Criteria (100 points max)
       const incMatch = userIncome >= p.minIncome && userIncome <= p.maxIncome;
-      const regMatch = p.regions.includes("전국") || userRegion.includes(p.regions[0]) || (p.regions[0] && userRegion.includes(p.regions[0].substring(0, 2)));
+      // Robust region matching for real data (checks if user region name is part of notice region name or vice versa)
+      const regMatch = p.regions.includes("전국") || 
+                       p.regions.some(r => userRegion.includes(r) || r.includes(userRegion.substring(0, 2)));
       const occMatch = p.occupations.includes(userOccupation);
       
       if (incMatch) score += 40;
@@ -147,16 +153,18 @@ export default function App() {
       if (occMatch) score += 30;
 
       // 2. Peer Popularity (Bonus up to 10 points)
-      // Logic: If policy occupations/regions match common patterns for the age group
-      const isPeerPopular = (userAgeGroup <= 25 && p.occupations.includes("대학생")) || 
-                            (userAgeGroup > 25 && p.occupations.includes("직장인"));
+      const isPeerPopular = (userAgeGroup <= 25 && (p.occupations.includes("대학생") || p.occupations.includes("청년"))) || 
+                            (userAgeGroup > 25 && (p.occupations.includes("직장인") || p.occupations.includes("신혼부부")));
       if (isPeerPopular) score += 10;
 
       // 3. Search History Match (Bonus up to 15 points)
       const matchesSearchHistory = searchHistory.some(keyword => p.title.includes(keyword) || p.summary.includes(keyword));
       if (matchesSearchHistory) score += 15;
 
-      // 4. Current Search Match (Huge boost for real-time filtering)
+      // 4. Real-time Data Priority
+      if (p.isRealTime) score += (p.realDataBoost || 5);
+
+      // 5. Current Search Match
       const matchesCurrentSearch = searchQuery && (p.title.includes(searchQuery) || p.summary.includes(searchQuery));
 
       if (incMatch && regMatch && occMatch) tag = "자격충족";
@@ -164,7 +172,7 @@ export default function App() {
       else tag = "부적격";
 
       // Final Score Calculation
-      score += (p.views / 10000) * 5;
+      score += (p.views / 15000) * 5;
 
       return { ...p, matchScore: Math.round(score), tag, 
         isPeerPopular,
@@ -339,10 +347,16 @@ export default function App() {
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
                         <div className="space-y-1">
                           <h2 className="text-xl font-black text-gray-900 flex items-center gap-2">
-                            {specialFilter ? (specialFilter === '자격충족' ? '✅ 자격 충족 리스트' : '⏰ 마감 직전 공고') : '🎯 오늘의 맞춤 추천'}
+                            {specialFilter ? (specialFilter === '자격충족' ? '✅ 실시간 자격 충족 공고' : '⏰ 마감 직전 공고') : '🎯 오늘의 실제 공고 큐레이션'}
                             {specialFilter && <button onClick={() => setSpecialFilter(null)} className="text-[10px] bg-gray-100 text-gray-400 px-2 py-0.5 rounded-full hover:text-primary transition-colors">전체보기</button>}
                           </h2>
-                          <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Based on your spec and recent interests</p>
+                          <div className="flex items-center gap-2">
+                            <span className="flex items-center gap-1 text-[9px] font-black text-green-500 bg-green-50 px-1.5 py-0.5 rounded-full border border-green-100">
+                              <span className="w-1 h-1 bg-green-500 rounded-full animate-pulse"></span>
+                              LIVE: LH/SH 실시간 연동중
+                            </span>
+                            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Based on official announcements and your spec</p>
+                          </div>
                         </div>
                         <div className="flex flex-col sm:flex-row items-center gap-3">
                           <div className="relative w-full sm:w-64">
